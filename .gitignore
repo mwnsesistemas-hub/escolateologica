@@ -1,0 +1,16 @@
+# dependências
+/node_modules
+
+# build do Next.js
+/.next
+/out
+
+# arquivos de ambiente (NUNCA subir para o GitHub)
+.env
+.env*.local
+
+# sistema operacional / editor
+.DS_Store
+Thumbs.db
+*.pem
+.vercel
