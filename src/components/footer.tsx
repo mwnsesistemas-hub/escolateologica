@@ -28,7 +28,6 @@ export function Footer() {
             <li><Link className="hover:text-gold-300" href="/cursos">Catálogo de cursos</Link></li>
             <li><Link className="hover:text-gold-300" href="/login">Área do aluno</Link></li>
             <li><Link className="hover:text-gold-300" href="/admin">Administração</Link></li>
-            <li><Link className="hover:text-gold-300" href="/guia">Guia de publicação</Link></li>
           </ul>
         </div>
 

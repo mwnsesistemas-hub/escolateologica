@@ -50,9 +50,6 @@ export function Nav({ user }: { user: NavUser }) {
       <Link href="/cursos" onClick={() => setOpen(false)} className="transition hover:text-gold-300">
         Cursos
       </Link>
-      <Link href="/guia" onClick={() => setOpen(false)} className="transition hover:text-gold-300">
-        Guia da plataforma
-      </Link>
     </>
   );
 
