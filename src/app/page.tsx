@@ -85,7 +85,7 @@ export default async function Home() {
       <section className="grain relative flex min-h-[100svh] flex-col overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/img/hero.jpg"
+          src="https://images.pexels.com/photos/37542465/pexels-photo-37542465.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920"
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
