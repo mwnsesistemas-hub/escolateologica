@@ -373,6 +373,21 @@ export function CourseEditor({ initial }: { initial: CourseData }) {
                     <Plus className="size-3.5" /> Aula
                   </button>
                   <button
+                    onClick={async () => {
+                      const title = prompt("Título da prova:", `Prova — ${mod.title}`);
+                      if (!title) return;
+                      try {
+                        const data = await api("/api/exams", "POST", { moduleId: mod.id, title });
+                        window.open(`/admin/provas/${data.exam.id}`, "_blank");
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : "Erro ao criar prova.");
+                      }
+                    }}
+                    className="flex items-center gap-1.5 rounded-full border border-amber-500/40 px-3.5 py-1.5 text-xs font-bold text-amber-300 transition hover:bg-amber-500/10"
+                  >
+                    <Plus className="size-3.5" /> Prova
+                  </button>
+                  <button
                     onClick={() => removeModule(mod.id)}
                     className="grid size-8 place-items-center rounded-full text-ivory-300/50 transition hover:text-red-300"
                     title="Excluir módulo"

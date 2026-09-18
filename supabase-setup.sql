@@ -20,6 +20,10 @@ DROP TABLE IF EXISTS "modules" CASCADE;
 DROP TABLE IF EXISTS "courses" CASCADE;
 DROP TABLE IF EXISTS "users" CASCADE;
 DROP TABLE IF EXISTS "settings" CASCADE;
+DROP TABLE IF EXISTS "exam_attempts" CASCADE;
+DROP TABLE IF EXISTS "exam_questions" CASCADE;
+DROP TABLE IF EXISTS "exams" CASCADE;
+DROP TABLE IF EXISTS "attachments" CASCADE;
 
 -- ── Configurações ───────────────────────────────────────────────────
 CREATE TABLE "settings" (
@@ -117,6 +121,64 @@ CREATE INDEX IF NOT EXISTS "idx_payments_user_id"      ON "payments"("user_id");
 CREATE INDEX IF NOT EXISTS "idx_payments_asaas_id"     ON "payments"("asaas_payment_id");
 CREATE INDEX IF NOT EXISTS "idx_progress_user_id"      ON "progress"("user_id");
 CREATE INDEX IF NOT EXISTS "idx_progress_lesson_id"    ON "progress"("lesson_id");
+
+-- ── Anexos de aula ──────────────────────────────────────────────────
+CREATE TABLE "attachments" (
+  "id"         uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "lesson_id"  uuid NOT NULL REFERENCES "lessons"("id") ON DELETE CASCADE,
+  "name"       text NOT NULL,
+  "url"        text NOT NULL,
+  "file_type"  text DEFAULT 'pdf' NOT NULL,
+  "position"   integer DEFAULT 0 NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+-- ── Provas ──────────────────────────────────────────────────────────
+CREATE TABLE "exams" (
+  "id"             uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "module_id"      uuid NOT NULL REFERENCES "modules"("id") ON DELETE CASCADE,
+  "title"          text NOT NULL,
+  "description"    text DEFAULT '' NOT NULL,
+  "time_limit_min" integer DEFAULT 30 NOT NULL,
+  "max_attempts"   integer DEFAULT 3 NOT NULL,
+  "passing_score"  integer DEFAULT 70 NOT NULL,
+  "position"       integer DEFAULT 0 NOT NULL,
+  "created_at"     timestamp with time zone DEFAULT now() NOT NULL
+);
+
+-- ── Questões ────────────────────────────────────────────────────────
+CREATE TABLE "exam_questions" (
+  "id"             uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "exam_id"        uuid NOT NULL REFERENCES "exams"("id") ON DELETE CASCADE,
+  "question"       text NOT NULL,
+  "option_a"       text NOT NULL,
+  "option_b"       text NOT NULL,
+  "option_c"       text NOT NULL,
+  "option_d"       text NOT NULL,
+  "correct_answer" text NOT NULL,
+  "explanation"    text DEFAULT '' NOT NULL,
+  "position"       integer DEFAULT 0 NOT NULL
+);
+
+-- ── Tentativas ──────────────────────────────────────────────────────
+CREATE TABLE "exam_attempts" (
+  "id"              uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "user_id"         uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "exam_id"         uuid NOT NULL REFERENCES "exams"("id") ON DELETE CASCADE,
+  "answers"         text DEFAULT '{}' NOT NULL,
+  "score"           integer DEFAULT 0 NOT NULL,
+  "total_correct"   integer DEFAULT 0 NOT NULL,
+  "total_questions"  integer DEFAULT 0 NOT NULL,
+  "passed"          boolean DEFAULT false NOT NULL,
+  "started_at"      timestamp with time zone DEFAULT now() NOT NULL,
+  "finished_at"     timestamp with time zone
+);
+
+CREATE INDEX IF NOT EXISTS "idx_attachments_lesson_id"   ON "attachments"("lesson_id");
+CREATE INDEX IF NOT EXISTS "idx_exams_module_id"         ON "exams"("module_id");
+CREATE INDEX IF NOT EXISTS "idx_exam_questions_exam_id"  ON "exam_questions"("exam_id");
+CREATE INDEX IF NOT EXISTS "idx_exam_attempts_user_id"   ON "exam_attempts"("user_id");
+CREATE INDEX IF NOT EXISTS "idx_exam_attempts_exam_id"   ON "exam_attempts"("exam_id");
 
 -- ═══════════════════════════════════════════════════════════════════
 -- Fim do script. Se chegou até aqui sem erros, as tabelas foram

@@ -10,10 +10,16 @@ import {
   ChevronDown,
   CirclePlay,
   Clock3,
+  Download,
+  FileText,
   LoaderCircle,
   MonitorPlay,
+  Trophy,
 } from "lucide-react";
 import { toYouTubeEmbed } from "@/lib/format";
+
+type AttachmentData = { id: string; name: string; url: string; fileType: string };
+type ExamData = { id: string; title: string; timeLimitMin: number };
 
 export type PlayerLesson = {
   id: string;
@@ -22,12 +28,14 @@ export type PlayerLesson = {
   videoUrl: string | null;
   durationMin: number;
   isFree: boolean;
+  attachments?: AttachmentData[];
 };
 
 export type PlayerModule = {
   id: string;
   title: string;
   lessons: PlayerLesson[];
+  exams?: ExamData[];
 };
 
 export function CoursePlayer({
@@ -64,10 +72,9 @@ export function CoursePlayer({
 
   function toggleModule(id: string) {
     setOpenModules((prev) => {
-      const nextSet = new Set(prev);
-      if (nextSet.has(id)) nextSet.delete(id);
-      else nextSet.add(id);
-      return nextSet;
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
     });
   }
 
@@ -93,7 +100,7 @@ export function CoursePlayer({
 
   return (
     <div className="flex min-h-screen flex-col bg-ink-950 lg:h-screen lg:flex-row lg:overflow-hidden">
-      {/* Trilha de aulas */}
+      {/* Trilha lateral */}
       <aside className="order-2 w-full border-t border-ink-800 lg:order-1 lg:h-full lg:w-[400px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-t-0">
         <div className="sticky top-0 z-10 border-b border-ink-800 bg-ink-950/95 p-5 backdrop-blur">
           <Link
@@ -137,38 +144,62 @@ export function CoursePlayer({
                 />
               </button>
               {openModules.has(mod.id) && (
-                <ul className="border-t border-ink-800 p-2">
-                  {mod.lessons.map((lesson) => {
-                    const isActive = lesson.id === currentId;
-                    const isDone = completed.has(lesson.id);
-                    return (
-                      <li key={lesson.id}>
-                        <button
-                          onClick={() => setCurrentId(lesson.id)}
-                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition ${
-                            isActive
-                              ? "bg-gold-500/15 text-gold-200"
-                              : "text-ivory-200/80 hover:bg-ink-850"
-                          }`}
+                <div className="border-t border-ink-800">
+                  <ul className="p-2">
+                    {mod.lessons.map((lesson) => {
+                      const isActive = lesson.id === currentId;
+                      const isDone = completed.has(lesson.id);
+                      return (
+                        <li key={lesson.id}>
+                          <button
+                            onClick={() => setCurrentId(lesson.id)}
+                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition ${
+                              isActive
+                                ? "bg-gold-500/15 text-gold-200"
+                                : "text-ivory-200/80 hover:bg-ink-850"
+                            }`}
+                          >
+                            {isDone ? (
+                              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500/20 text-emerald-300">
+                                <Check className="size-3.5" strokeWidth={3} />
+                              </span>
+                            ) : (
+                              <CirclePlay className={`size-5 shrink-0 ${isActive ? "text-gold-300" : "text-ivory-300/50"}`} />
+                            )}
+                            <span className="flex-1 leading-snug">{lesson.title}</span>
+                            {lesson.attachments && lesson.attachments.length > 0 && (
+                              <FileText className="size-3.5 shrink-0 text-blue-400/70" />
+                            )}
+                            {lesson.durationMin > 0 && (
+                              <span className="shrink-0 text-[10px] tabular-nums text-ivory-300/45">
+                                {lesson.durationMin}m
+                              </span>
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  {/* Provas do módulo */}
+                  {mod.exams && mod.exams.length > 0 && (
+                    <div className="border-t border-ink-800 p-2">
+                      {mod.exams.map((exam) => (
+                        <Link
+                          key={exam.id}
+                          href={`/curso/${courseSlug}/prova/${exam.id}`}
+                          className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-amber-200/80 transition hover:bg-amber-500/10"
                         >
-                          {isDone ? (
-                            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500/20 text-emerald-300">
-                              <Check className="size-3.5" strokeWidth={3} />
-                            </span>
-                          ) : (
-                            <CirclePlay className={`size-5 shrink-0 ${isActive ? "text-gold-300" : "text-ivory-300/50"}`} />
-                          )}
-                          <span className="flex-1 leading-snug">{lesson.title}</span>
-                          {lesson.durationMin > 0 && (
-                            <span className="shrink-0 text-[10px] tabular-nums text-ivory-300/45">
-                              {lesson.durationMin}m
-                            </span>
-                          )}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                          <Trophy className="size-5 shrink-0 text-amber-400" />
+                          <span className="flex-1 leading-snug">{exam.title}</span>
+                          <span className="shrink-0 text-[10px] text-ivory-300/45">
+                            {exam.timeLimitMin}min
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))}
@@ -188,24 +219,12 @@ export function CoursePlayer({
               className="absolute inset-0 h-full w-full"
             />
           ) : current?.videoUrl ? (
-            <video
-              key={current.id}
-              src={current.videoUrl}
-              controls
-              className="absolute inset-0 h-full w-full"
-            />
+            <video key={current.id} src={current.videoUrl} controls className="absolute inset-0 h-full w-full" />
           ) : (
             <div className="grain absolute inset-0 grid place-items-center bg-gradient-to-br from-ink-900 to-ink-950">
               <div className="text-center">
                 <MonitorPlay className="mx-auto size-14 text-gold-500/50" />
-                <p className="mt-5 font-display text-xl font-semibold text-ivory-100">
-                  Vídeo em preparação
-                </p>
-                <p className="mx-auto mt-2 max-w-xs text-sm text-ivory-300/60">
-                  {isAdmin
-                    ? "Adicione o link do vídeo desta aula no painel de administração."
-                    : "O professor disponibilizará o vídeo desta aula em breve."}
-                </p>
+                <p className="mt-5 font-display text-xl font-semibold text-ivory-100">Vídeo em preparação</p>
               </div>
             </div>
           )}
@@ -214,26 +233,51 @@ export function CoursePlayer({
         {current && (
           <div className="flex-1 p-6 lg:p-10">
             <div className="mx-auto max-w-3xl">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-gold-400">
-                    Aula {String(currentIndex + 1).padStart(2, "0")} de {flat.length}
-                    {current.durationMin > 0 && (
-                      <span className="ml-3 inline-flex items-center gap-1.5 text-ivory-300/50">
-                        <Clock3 className="size-3.5" /> {current.durationMin} min
-                      </span>
-                    )}
-                  </p>
-                  <h2 className="mt-3 font-display text-3xl font-semibold text-ivory-50 md:text-4xl">
-                    {current.title}
-                  </h2>
-                </div>
-              </div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-gold-400">
+                Aula {String(currentIndex + 1).padStart(2, "0")} de {flat.length}
+                {current.durationMin > 0 && (
+                  <span className="ml-3 inline-flex items-center gap-1.5 text-ivory-300/50">
+                    <Clock3 className="size-3.5" /> {current.durationMin} min
+                  </span>
+                )}
+              </p>
+              <h2 className="mt-3 font-display text-3xl font-semibold text-ivory-50 md:text-4xl">
+                {current.title}
+              </h2>
 
               {current.description && (
                 <p className="mt-6 text-lg leading-relaxed text-ivory-200/80">
                   {current.description}
                 </p>
+              )}
+
+              {/* ── ANEXOS DA AULA ── */}
+              {current.attachments && current.attachments.length > 0 && (
+                <div className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-5">
+                  <p className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gold-300">
+                    <FileText className="size-4" /> Material da aula
+                  </p>
+                  <div className="grid gap-2">
+                    {current.attachments.map((att) => (
+                      <a
+                        key={att.id}
+                        href={att.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-3 rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm transition hover:border-gold-500/40 hover:bg-ink-800"
+                      >
+                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-blue-500/15 text-blue-300">
+                          <FileText className="size-4" />
+                        </span>
+                        <span className="flex-1 font-medium text-ivory-100">{att.name}</span>
+                        <span className="rounded-full bg-ink-800 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-ivory-300/50">
+                          {att.fileType}
+                        </span>
+                        <Download className="size-4 text-gold-400" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
               )}
 
               <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-ink-800 pt-8">
@@ -254,10 +298,7 @@ export function CoursePlayer({
                   </button>
                 )}
                 {next && (
-                  <button
-                    onClick={() => setCurrentId(next.id)}
-                    className="btn-ghost"
-                  >
+                  <button onClick={() => setCurrentId(next.id)} className="btn-ghost">
                     Próxima aula <ArrowRight className="size-4 text-gold-400" />
                   </button>
                 )}

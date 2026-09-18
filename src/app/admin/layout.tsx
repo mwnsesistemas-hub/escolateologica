@@ -8,12 +8,14 @@ import {
   Library,
   PlugZap,
   Globe,
+  Trophy,
 } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 
 const MENU = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard },
   { href: "/admin/cursos", label: "Cursos", icon: Library },
+  { href: "/admin/provas", label: "Provas", icon: Trophy },
   { href: "/admin/alunos", label: "Alunos", icon: GraduationCap },
   { href: "/admin/integracoes", label: "Integrações", icon: PlugZap },
 ];
