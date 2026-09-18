@@ -1,30 +1,49 @@
+import { db } from "@/db";
+import { settings } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
 /**
- * Integrações externas da plataforma.
- *
- * ASAAS  → cobranças (PIX, boleto, cartão). Documentação: https://docs.asaas.com
- * META   → WhatsApp Cloud API. Documentação: https://developers.facebook.com/docs/whatsapp/cloud-api
- *
- * Se as variáveis de ambiente não estiverem configuradas, a plataforma roda em
- * "modo demonstração": pagamentos são simulados e mensagens apenas registradas.
+ * Busca uma configuração do banco de dados.
+ * Se não existir, tenta ler das variáveis de ambiente.
  */
+async function getSetting(key: string, envKey: string): Promise<string | null> {
+  try {
+    const [row] = await db
+      .select({ value: settings.value })
+      .from(settings)
+      .where(eq(settings.key, key))
+      .limit(1);
+    
+    if (row?.value) return row.value;
+  } catch (err) {
+    console.warn(`[settings] erro ao buscar ${key} no banco, usando env:`, err);
+  }
+  
+  return process.env[envKey] || null;
+}
 
 // ─── ASAAS ──────────────────────────────────────────────────────────────────
 
-export function asaasConfigured(): boolean {
-  return Boolean(process.env.ASAAS_API_KEY);
+export async function getAsaasApiKey(): Promise<string | null> {
+  return getSetting("asaas_api_key", "ASAAS_API_KEY");
+}
+
+export async function asaasConfigured(): Promise<boolean> {
+  const key = await getAsaasApiKey();
+  return Boolean(key);
 }
 
 function asaasBaseUrl(): string {
-  // Sandbox por padrão (seguro para testes). Para produção: https://api.asaas.com/v3
   return process.env.ASAAS_BASE_URL || "https://api-sandbox.asaas.com/v3";
 }
 
 async function asaasFetch(path: string, options: RequestInit = {}) {
+  const apiKey = await getAsaasApiKey();
   const res = await fetch(`${asaasBaseUrl()}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      access_token: process.env.ASAAS_API_KEY || "",
+      access_token: apiKey || "",
       ...(options.headers || {}),
     },
   });
@@ -44,10 +63,6 @@ export type AsaasPaymentResult = {
   status: string;
 };
 
-/**
- * Cria (ou localiza) um cliente e gera uma cobrança PIX.
- * O `externalReference` recebe o ID do pagamento interno para o webhook localizar depois.
- */
 export async function createAsaasPixPayment(params: {
   name: string;
   email: string;
@@ -55,7 +70,6 @@ export async function createAsaasPixPayment(params: {
   description: string;
   externalReference: string;
 }): Promise<AsaasPaymentResult> {
-  // 1) Cria o cliente no Asaas
   const customer = await asaasFetch("/customers", {
     method: "POST",
     body: JSON.stringify({
@@ -66,7 +80,6 @@ export async function createAsaasPixPayment(params: {
     }),
   });
 
-  // 2) Cria a cobrança PIX com vencimento de 3 dias
   const dueDate = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
   const payment = await asaasFetch("/payments", {
     method: "POST",
@@ -89,18 +102,23 @@ export async function createAsaasPixPayment(params: {
 
 // ─── META / WHATSAPP CLOUD API ──────────────────────────────────────────────
 
-export function metaConfigured(): boolean {
-  return Boolean(process.env.META_WA_TOKEN && process.env.META_WA_PHONE_ID);
+export async function getMetaWaToken(): Promise<string | null> {
+  return getSetting("meta_wa_token", "META_WA_TOKEN");
 }
 
-/**
- * Envia mensagem de texto via WhatsApp Cloud API.
- * Observação: fora da janela de 24h de conversa aberta, a Meta exige templates
- * aprovados — consulte o /guia dentro da plataforma.
- */
+export async function getMetaWaPhoneId(): Promise<string | null> {
+  return getSetting("meta_wa_phone_id", "META_WA_PHONE_ID");
+}
+
+export async function metaConfigured(): Promise<boolean> {
+  const [token, phoneId] = await Promise.all([getMetaWaToken(), getMetaWaPhoneId()]);
+  return Boolean(token && phoneId);
+}
+
 export async function sendWhatsAppMessage(to: string, text: string): Promise<void> {
-  const phoneId = process.env.META_WA_PHONE_ID;
-  const token = process.env.META_WA_TOKEN;
+  const token = await getMetaWaToken();
+  const phoneId = await getMetaWaPhoneId();
+  
   const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
     method: "POST",
     headers: {
@@ -121,14 +139,17 @@ export async function sendWhatsAppMessage(to: string, text: string): Promise<voi
   }
 }
 
-/** Notifica o aluno sobre matrícula confirmada (silencioso em caso de erro) */
 export async function notifyEnrollmentWhatsApp(params: {
   phone: string | null;
   studentName: string;
   courseTitle: string;
 }) {
+  const isMetaOk = await metaConfigured();
+  if (!isMetaOk) return;
+
   const to = params.phone || process.env.META_WA_DEFAULT_TO;
-  if (!metaConfigured() || !to) return;
+  if (!to) return;
+
   try {
     await sendWhatsAppMessage(
       to,

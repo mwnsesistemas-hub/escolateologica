@@ -28,7 +28,14 @@ Este guia também está disponível dentro da plataforma, na página **`/guia`**
 1. Crie a conta em <https://supabase.com> (entre com o GitHub).
 2. **New project** → nome `lumen`, senha forte (anote!), região São Paulo.
 3. Abra **SQL Editor → New query**, cole todo o conteúdo do arquivo **`supabase-setup.sql`** (na raiz deste projeto) e clique em **Run**. Todas as tabelas serão criadas de uma vez.
-4. Copie a URL de conexão em **Settings → Database → Connection string → URI** e substitua `[YOUR-PASSWORD]` pela senha anotada. Esse é o valor da variável `DATABASE_URL`.
+4. Copie a URL de conexão em **Settings → Database → Connection string → aba Transaction (porta 6543)** e substitua `[YOUR-PASSWORD]` pela senha anotada. Esse é o valor da variável `DATABASE_URL`.
+
+> ⚠️ Use **sempre a porta 6543** (Transaction mode), não a 5432. A Vercel usa funções serverless que abrem muitas conexões; o modo Transaction do Supabase gerencia isso corretamente.
+
+A URL terá este formato:
+```
+postgresql://postgres.SEU-PROJETO:SUA-SENHA@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+```
 
 ## 3. Vercel (publicação)
 

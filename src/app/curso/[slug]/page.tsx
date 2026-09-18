@@ -40,10 +40,13 @@ export default async function CoursePage({
 }) {
   const { slug } = await params;
   await ensureSeeded();
-  const [course, user] = await Promise.all([getCourseTree(slug), getSessionUser()]);
+  const [course, user] = await Promise.all([
+    getCourseTree(slug).catch(() => null),
+    getSessionUser().catch(() => null),
+  ]);
   if (!course || course.status !== "published") notFound();
 
-  const enrollment = user ? await getEnrollment(user.id, course.id) : null;
+  const enrollment = user ? await getEnrollment(user.id, course.id).catch(() => null) : null;
   const totalLessons = course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
   const totalMinutes = course.modules.reduce(
     (acc, m) => acc + m.lessons.reduce((a, l) => a + l.durationMin, 0),

@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   }
 
   // ── Asaas (produção) ────────────────────────────────────────
-  if (asaasConfigured()) {
+  if (await asaasConfigured()) {
     try {
       const [payment] = await db
         .insert(payments)

@@ -20,7 +20,12 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Administração" };
 
 export default async function AdminDashboard() {
-  const stats = await getAdminStats();
+  const [stats, asaasOk, metaOk] = await Promise.all([
+    getAdminStats(),
+    asaasConfigured(),
+    metaConfigured(),
+  ]);
+
   const recent = await db
     .select({ enrollment: enrollments, user: users, course: courses })
     .from(enrollments)
@@ -114,12 +119,12 @@ export default async function AdminDashboard() {
               </div>
               <span
                 className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
-                  asaasConfigured()
+                  asaasOk
                     ? "bg-emerald-500/15 text-emerald-300"
                     : "bg-gold-500/15 text-gold-300"
                 }`}
               >
-                {asaasConfigured() ? "Ativo" : "Demo"}
+                {asaasOk ? "Ativo" : "Demo"}
               </span>
             </li>
             <li className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-850 px-4 py-3.5">
@@ -129,12 +134,12 @@ export default async function AdminDashboard() {
               </div>
               <span
                 className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
-                  metaConfigured()
+                  metaOk
                     ? "bg-emerald-500/15 text-emerald-300"
                     : "bg-gold-500/15 text-gold-300"
                 }`}
               >
-                {metaConfigured() ? "Ativo" : "Demo"}
+                {metaOk ? "Ativo" : "Demo"}
               </span>
             </li>
           </ul>

@@ -139,3 +139,13 @@ export type Module = typeof modules.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+
+// ─── Configurações Dinâmicas (Asaas/Meta) ───────────────────────────────────
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(), // ex: asaas_api_key, meta_wa_token
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+

@@ -19,13 +19,13 @@ export default async function ClassroomPage({
 }) {
   const [{ slug }, { aula }] = await Promise.all([params, searchParams]);
   await ensureSeeded();
-  const user = await getSessionUser();
+  const user = await getSessionUser().catch(() => null);
   if (!user) redirect(`/login?next=/curso/${slug}/aulas`);
 
-  const course = await getCourseTree(slug);
+  const course = await getCourseTree(slug).catch(() => null);
   if (!course || course.status !== "published") notFound();
 
-  const enrollment = await getEnrollment(user.id, course.id);
+  const enrollment = await getEnrollment(user.id, course.id).catch(() => null);
 
   // Portão de acesso: matrícula ativa ou administrador
   if (!enrollment && user.role !== "admin") {

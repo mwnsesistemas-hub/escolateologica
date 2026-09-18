@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Informe número e mensagem." }, { status: 400 });
   }
 
-  if (!metaConfigured()) {
+  if (!(await metaConfigured())) {
     console.log(`[WhatsApp DEMO] para=${to} mensagem="${text}"`);
     return NextResponse.json({
       ok: true,

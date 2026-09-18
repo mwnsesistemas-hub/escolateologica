@@ -120,9 +120,17 @@ export default async function GuidePage() {
             <li>Clique em <strong>New project</strong>, escolha um nome (ex.: <code className="text-gold-300">lumen</code>), defina uma <strong>senha do banco</strong> forte (anote-a!) e mantenha a região <strong>São Paulo</strong>. Clique em <strong>Create new project</strong> e aguarde ~2 minutos.</li>
             <li>No menu lateral, clique no ícone de <strong>&lt;/&gt;</strong> (SQL Editor) → <strong>New query</strong>.</li>
             <li>Abra o arquivo <code className="text-gold-300">supabase-setup.sql</code> (na raiz dos arquivos do projeto), copie <strong>todo o conteúdo</strong>, cole no editor e clique em <strong>Run</strong>. Isso cria todas as tabelas de uma vez.</li>
-            <li>Agora copie a URL de conexão: menu lateral → ícone de engrenagem (<strong>Settings</strong>) → <strong>Database</strong> → seção <strong>Connection string</strong> → aba <strong>URI</strong>. Copie o texto, que é assim:</li>
+            <li>
+              Agora copie a URL de conexão: menu lateral → ícone de engrenagem (<strong>Settings</strong>) →{" "}
+              <strong>Database</strong> → seção <strong>Connection string</strong> → aba{" "}
+              <strong>Transaction</strong> (porta <strong>6543</strong>). O texto será algo assim:
+            </li>
           </ol>
-          <Code>{`postgresql://postgres.SEU-PROJETO:[SUA-SENHA]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`}</Code>
+          <Code>{`postgresql://postgres.SEU-PROJETO:[SUA-SENHA]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres`}</Code>
+          <p className="rounded-xl border border-red-400/25 bg-red-500/8 p-4 text-sm text-red-200">
+            ⚠️ <strong>Atenção:</strong> use a aba <strong>Transaction</strong> (porta 6543), não a "Session" (porta 5432).
+            A porta 6543 é otimizada para o ambiente serverless da Vercel e evita o erro "too many connections".
+          </p>
           <p className="text-sm">
             Substitua <code className="text-gold-300">[SUA-SENHA]</code> pela senha que você anotou ao criar o projeto.
             Guarde essa URL — ela será a sua <code className="text-gold-300">DATABASE_URL</code> no próximo passo.
@@ -137,7 +145,7 @@ export default async function GuidePage() {
             <li>Clique em <strong>Add New… → Project</strong> e depois em <strong>Import</strong> ao lado do repositório <code className="text-gold-300">escola-de-teologia</code>.</li>
             <li>Antes de clicar em Deploy, abra a seção <strong>Environment Variables</strong> e adicione estas duas variáveis:</li>
           </ol>
-          <Code>{`DATABASE_URL = postgresql://postgres.SEU-PROJETO:SUA-SENHA@...supabase.com:5432/postgres
+          <Code>{`DATABASE_URL = postgresql://postgres.SEU-PROJETO:SUA-SENHA@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
 AUTH_SECRET  = uma-senha-longa-e-aleatoria-que-voce-inventar`}</Code>
           <ol className="list-decimal space-y-2.5 pl-5" start={4}>
             <li>Clique em <strong>Deploy</strong> e aguarde ~2 minutos. Ao final, a Vercel mostra o endereço do seu site, algo como:</li>

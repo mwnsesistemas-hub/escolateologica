@@ -344,33 +344,34 @@ export async function seedDatabase() {
   return { admin: Boolean(adminRow), student: Boolean(studentRow) };
 }
 
-/** Semeia apenas se o banco estiver vazio (usado no boot da aplicação) */
-let seeding: Promise<void> | null = null;
-export async function ensureSeeded() {
-  if (seeding) return seeding;
-  seeding = (async () => {
+/**
+ * Semeia dados de demonstração apenas se o banco estiver vazio.
+ * Chamado em cada Server Component na primeira requisição.
+ * Nunca lança exceção — erros são apenas logados.
+ */
+let _seeded = false;
+let _seeding: Promise<void> | null = null;
+
+export async function ensureSeeded(): Promise<void> {
+  if (_seeded) return;
+  if (_seeding) return _seeding;
+
+  _seeding = (async () => {
     try {
       const existing = await db.select({ id: users.id }).from(users).limit(1);
       if (existing.length === 0) {
         await seedDatabase();
-        console.log("[seed] banco de dados semeado com dados de demonstração");
+        console.log("[seed] banco semeado com dados de demonstração");
       }
+      _seeded = true;
     } catch (err) {
-      console.error("[seed] falha ao semear:", err);
+      // Não propaga o erro — a aplicação deve funcionar mesmo sem seed
+      // (ex.: banco recém-criado sem as tabelas ainda).
+      console.error("[seed] falha ao semear (ignorado):", err);
+      // Reseta para tentar novamente na próxima requisição
+      _seeding = null;
     }
   })();
-  return seeding;
-}
 
-// Execução direta: `npx tsx src/db/seed.ts`
-if (require.main === module) {
-  seedDatabase()
-    .then(() => {
-      console.log("Seed concluído com sucesso.");
-      process.exit(0);
-    })
-    .catch((err) => {
-      console.error("Erro no seed:", err);
-      process.exit(1);
-    });
+  return _seeding;
 }

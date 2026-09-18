@@ -8,12 +8,12 @@ export async function GET() {
 
   return NextResponse.json({
     asaas: {
-      configured: asaasConfigured(),
+      configured: await asaasConfigured(),
       baseUrl: process.env.ASAAS_BASE_URL || "https://api-sandbox.asaas.com/v3",
       webhookTokenSet: Boolean(process.env.ASAAS_WEBHOOK_TOKEN),
     },
     meta: {
-      configured: metaConfigured(),
+      configured: await metaConfigured(),
       phoneIdSet: Boolean(process.env.META_WA_PHONE_ID),
       defaultToSet: Boolean(process.env.META_WA_DEFAULT_TO),
     },

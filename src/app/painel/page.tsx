@@ -21,10 +21,10 @@ export const metadata: Metadata = { title: "Meu painel" };
 
 export default async function StudentDashboard() {
   await ensureSeeded();
-  const user = await getSessionUser();
+  const user = await getSessionUser().catch(() => null);
   if (!user) redirect("/login?next=/painel");
 
-  const items = await getStudentDashboard(user.id);
+  const items = await getStudentDashboard(user.id).catch(() => []);
   const totalCompleted = items.reduce((a, i) => a + i.completedCount, 0);
   const finishedCourses = items.filter(
     (i) => i.lessonsCount > 0 && i.completedCount >= i.lessonsCount

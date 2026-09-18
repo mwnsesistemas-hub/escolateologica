@@ -13,8 +13,8 @@ export const metadata: Metadata = { title: "Catálogo de cursos" };
 export default async function CoursesPage() {
   await ensureSeeded();
   const [user, courses] = await Promise.all([
-    getSessionUser(),
-    getCourseSummaries({ publishedOnly: true }),
+    getSessionUser().catch(() => null),
+    getCourseSummaries({ publishedOnly: true }).catch(() => []),
   ]);
   const categories = [...new Set(courses.map((c) => c.category))];
 
