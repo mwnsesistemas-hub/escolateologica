@@ -19,6 +19,8 @@ import { CourseCard } from "@/components/course-card";
 import { getSessionUser } from "@/lib/auth";
 import { getCourseSummaries } from "@/lib/queries";
 import { ensureSeeded } from "@/db/seed";
+import { databaseUrl } from "@/db";
+import { SetupBanner } from "@/components/setup-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -54,16 +56,30 @@ const MARQUEE_ITEMS = [
 ];
 
 export default async function Home() {
-  await ensureSeeded();
-  const [user, courses] = await Promise.all([
-    getSessionUser(),
-    getCourseSummaries({ publishedOnly: true }),
+  // Tenta semear dados — nunca lança exceção
+  await ensureSeeded().catch(() => null);
+
+  // Tenta buscar dados — falha graciosamente
+  const [user, courses, dbOk] = await Promise.all([
+    getSessionUser().catch(() => null),
+    getCourseSummaries({ publishedOnly: true }).catch(() => []),
+    // testa conexão simples via pool.query
+    import("@/db").then(({ pool }) =>
+      pool.query("SELECT 1").then(() => true).catch(() => false)
+    ),
   ]);
+
   const featured = courses.slice(0, 6);
+  const dbConfigured = Boolean(databaseUrl);
 
   return (
     <main className="min-h-screen bg-ink-950">
       <Nav user={user ? { name: user.name, role: user.role } : null} />
+
+      {/* Banner de configuração — aparece apenas se o banco não estiver ok */}
+      {(!dbConfigured || !dbOk) && (
+        <SetupBanner dbConfigured={dbConfigured} dbConnected={Boolean(dbOk)} />
+      )}
 
       {/* ── HERO ─────────────────────────────────────────── */}
       <section className="grain relative flex min-h-[100svh] flex-col overflow-hidden">
@@ -112,7 +128,7 @@ export default async function Home() {
           <Reveal delay={0.45}>
             <div className="mt-16 grid max-w-2xl grid-cols-3 gap-6 border-t border-ivory-100/10 pt-8">
               {[
-                { icon: Library, big: `${courses.length}+`, small: "Cursos completos" },
+                { icon: Library, big: `${courses.length || "6"}+`, small: "Cursos completos" },
                 { icon: Users, big: "1.200+", small: "Alunos formados" },
                 { icon: BadgeCheck, big: "100%", small: "Conteúdo próprio" },
               ].map((s) => (
@@ -191,13 +207,27 @@ export default async function Home() {
             </div>
           </Reveal>
 
-          <div className="mt-14 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((course, i) => (
-              <Reveal key={course.id} delay={(i % 3) * 0.1}>
-                <CourseCard course={course} />
-              </Reveal>
-            ))}
-          </div>
+          {featured.length > 0 ? (
+            <div className="mt-14 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+              {featured.map((course, i) => (
+                <Reveal key={course.id} delay={(i % 3) * 0.1}>
+                  <CourseCard course={course} />
+                </Reveal>
+              ))}
+            </div>
+          ) : (
+            <Reveal delay={0.1}>
+              <div className="mt-14 rounded-3xl border border-dashed border-ink-600 p-16 text-center">
+                <BookOpenCheck className="mx-auto size-10 text-gold-500/50" />
+                <p className="mt-5 font-display text-xl text-ivory-300/60">
+                  Os cursos aparecerão aqui após a configuração do banco de dados.
+                </p>
+                <Link href="/guia" className="btn-gold mt-7 inline-flex">
+                  Ver guia de configuração
+                </Link>
+              </div>
+            </Reveal>
+          )}
         </div>
       </section>
 
@@ -263,7 +293,7 @@ export default async function Home() {
         <div className="relative mx-auto max-w-3xl px-5 text-center">
           <Reveal>
             <p className="font-display text-lg italic text-gold-300">
-              “Lâmpada para os meus pés é a tua palavra”
+              "Lâmpada para os meus pés é a tua palavra"
             </p>
             <h2 className="text-balance mt-6 font-display text-4xl font-semibold text-ivory-50 md:text-6xl">
               Comece hoje a sua jornada de estudo
