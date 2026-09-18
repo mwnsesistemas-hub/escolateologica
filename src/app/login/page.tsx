@@ -10,7 +10,7 @@ export default function LoginPage() {
   return (
     <main className="grain relative grid min-h-screen place-items-center overflow-hidden bg-ink-950 px-5 py-20">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/img/hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />
+      <img src="https://images.pexels.com/photos/37542465/pexels-photo-37542465.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920" alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />
       <div className="absolute inset-0 bg-gradient-to-b from-ink-950/80 via-ink-950/60 to-ink-950" />
 
       <div className="relative w-full max-w-md animate-fade-up">
