@@ -33,13 +33,27 @@ export async function asaasConfigured(): Promise<boolean> {
   return Boolean(key);
 }
 
-function asaasBaseUrl(): string {
-  return process.env.ASAAS_BASE_URL || "https://api-sandbox.asaas.com/v3";
+/**
+ * Ambiente do Asaas: "sandbox" (testes, dinheiro fictício) ou "production"
+ * (cobranças reais). Configurável direto pelo painel /admin/integracoes —
+ * não é mais preciso mexer em variáveis de ambiente na Vercel.
+ */
+export async function getAsaasEnvironment(): Promise<"sandbox" | "production"> {
+  const value = await getSetting("asaas_environment", "ASAAS_ENVIRONMENT");
+  return value === "production" ? "production" : "sandbox";
+}
+
+async function asaasBaseUrl(): Promise<string> {
+  const env = await getAsaasEnvironment();
+  return env === "production"
+    ? "https://api.asaas.com/v3"
+    : "https://api-sandbox.asaas.com/v3";
 }
 
 async function asaasFetch(path: string, options: RequestInit = {}) {
   const apiKey = await getAsaasApiKey();
-  const res = await fetch(`${asaasBaseUrl()}${path}`, {
+  const baseUrl = await asaasBaseUrl();
+  const res = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -63,9 +77,15 @@ export type AsaasPaymentResult = {
   status: string;
 };
 
-export async function createAsaasPixPayment(params: {
+/**
+ * Cria uma cobrança no Asaas. Usamos billingType "UNDEFINED": o próprio
+ * aluno escolhe, na página do Asaas, entre PIX, boleto (à vista) ou
+ * cartão de crédito — sem precisarmos programar cada método à parte.
+ */
+export async function createAsaasPayment(params: {
   name: string;
   email: string;
+  cpfCnpj: string;
   value: number; // em reais, ex.: 297.00
   description: string;
   externalReference: string;
@@ -75,6 +95,7 @@ export async function createAsaasPixPayment(params: {
     body: JSON.stringify({
       name: params.name,
       email: params.email,
+      cpfCnpj: params.cpfCnpj.replace(/\D/g, ""),
       externalReference: params.externalReference,
       notificationDisabled: true,
     }),
@@ -85,7 +106,7 @@ export async function createAsaasPixPayment(params: {
     method: "POST",
     body: JSON.stringify({
       customer: customer.id,
-      billingType: "PIX",
+      billingType: "UNDEFINED",
       value: params.value,
       dueDate,
       description: params.description,
