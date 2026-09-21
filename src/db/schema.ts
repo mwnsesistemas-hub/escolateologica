@@ -17,7 +17,8 @@ export const users = pgTable("users", {
   role: text("role", { enum: ["admin", "student"] })
     .notNull()
     .default("student"),
-  phone: text("phone"), // número WhatsApp, ex.: 5511999999999
+    phone: text("phone"), // número WhatsApp, ex.: 5511999999999
+  cpfCnpj: text("cpf_cnpj"), // exigido pelo Asaas para boleto/cartão
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
