@@ -6,6 +6,7 @@ import { Check, KeyRound, LoaderCircle, Save } from "lucide-react";
 export function IntegrationSettingsForm() {
   const [settings, setSettings] = useState({
     asaas_api_key: "",
+    asaas_environment: "sandbox",
     meta_wa_token: "",
     meta_wa_phone_id: "",
   });
@@ -20,6 +21,7 @@ export function IntegrationSettingsForm() {
       .then((data) => {
         setSettings({
           asaas_api_key: data.asaas_api_key || "",
+          asaas_environment: data.asaas_environment === "production" ? "production" : "sandbox",
           meta_wa_token: data.meta_wa_token || "",
           meta_wa_phone_id: data.meta_wa_phone_id || "",
         });
@@ -67,7 +69,7 @@ export function IntegrationSettingsForm() {
           </span>
           <div>
             <h2 className="font-display text-xl font-semibold text-ivory-50">Configurar Asaas</h2>
-            <p className="text-xs text-ivory-300/55">Chaves de produção ou sandbox</p>
+            <p className="text-xs text-ivory-300/55">PIX, boleto e cartão de crédito</p>
           </div>
         </div>
 
@@ -85,6 +87,25 @@ export function IntegrationSettingsForm() {
             />
             <p className="mt-2 text-[10px] text-ivory-300/40 italic">
               * Cole a chave completa. Se já houver uma salva, aparecerá mascarada.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ivory-300/60">
+              Ambiente
+            </label>
+            <select
+              className="field"
+              value={settings.asaas_environment}
+              onChange={(e) => setSettings({ ...settings, asaas_environment: e.target.value })}
+            >
+              <option value="sandbox">Sandbox (testes, dinheiro fictício)</option>
+              <option value="production">Produção (cobranças reais)</option>
+            </select>
+            <p className="mt-2 text-[10px] text-ivory-300/40 italic">
+              * Use uma chave de API compatível com o ambiente escolhido (a chave de
+              sandbox é diferente da chave de produção — gere cada uma no painel
+              correspondente do Asaas).
             </p>
           </div>
         </div>
