@@ -85,6 +85,7 @@ export function EnrollButton({
   }
 
   if (phase.step === "live") {
+    const invoiceUrl = phase.invoiceUrl;
     return (
       <div className="space-y-3">
         <div className="rounded-2xl border border-gold-500/30 bg-gold-500/10 p-4 text-sm text-ivory-100">
@@ -92,23 +93,21 @@ export function EnrollButton({
             <ReceiptText className="size-4" /> Cobrança gerada
           </p>
           <p className="mt-2 leading-relaxed text-ivory-300/80">
-            Abra a fatura para escolher entre PIX, boleto ou cartão de crédito.
-            Assim que o pagamento for confirmado, sua matrícula será ativada
-            automaticamente.
+            Abra a fatura para escolher entre PIX, boleto ou cartão de crédito. Assim que o pagamento for confirmado, sua matrícula será ativada automaticamente.
           </p>
         </div>
-
+        {invoiceUrl ? (
+          <a href={invoiceUrl} target="_blank" rel="noreferrer" className="btn-gold w-full">
+            Abrir cobrança <ExternalLink className="size-4" />
+          </a>
+        ) : null}
         <button onClick={() => setPhase({ step: "idle" })} className="w-full text-center text-xs text-ivory-300/60 hover:text-gold-300">
           Voltar
         </button>
       </div>
     );
   }
-               {phase.invoiceUrl && (
-          <a href={phase.invoiceUrl} target="_blank" rel="noreferrer" className="btn-gold w-full">
-            Abrir cobrança <ExternalLink className="size-4" />
-          </a>
-        )}
+
   if (phase.step === "askCpf") {
     return (
       <div className="space-y-3">
@@ -123,13 +122,7 @@ export function EnrollButton({
             onChange={(e) => setCpf(e.target.value)}
           />
         </div>
-        {phase.step === "askCpf" && (
-          <p className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 empty:hidden" />
-        )}
-        <button
-          onClick={() => startCheckout(cpf)}
-          className="btn-gold w-full !py-4"
-        >
+        <button onClick={() => startCheckout(cpf)} className="btn-gold w-full !py-4">
           Continuar <ArrowRight className="size-4" />
         </button>
         <button onClick={() => setPhase({ step: "idle" })} className="w-full text-center text-xs text-ivory-300/60 hover:text-gold-300">
@@ -141,11 +134,11 @@ export function EnrollButton({
 
   return (
     <div className="space-y-3">
-      {phase.step === "error" && (
+      {phase.step === "error" ? (
         <p className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {phase.message}
         </p>
-      )}
+      ) : null}
       {!isLoggedIn ? (
         <>
           <Link href={`/login?next=/curso/${courseSlug}`} className="btn-gold w-full !py-4">
