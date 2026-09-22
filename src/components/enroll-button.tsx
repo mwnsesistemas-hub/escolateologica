@@ -104,13 +104,8 @@ export function EnrollButton({
       </div>
     );
   }
-        {phase.invoiceUrl && (
-          
-            href={phase.invoiceUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-gold w-full"
-          >
+               {phase.invoiceUrl && (
+          <a href={phase.invoiceUrl} target="_blank" rel="noreferrer" className="btn-gold w-full">
             Abrir cobrança <ExternalLink className="size-4" />
           </a>
         )}
