@@ -345,33 +345,10 @@ export async function seedDatabase() {
 }
 
 /**
- * Semeia dados de demonstração apenas se o banco estiver vazio.
- * Chamado em cada Server Component na primeira requisição.
- * Nunca lança exceção — erros são apenas logados.
+ * Semeadura de dados de demonstração DESATIVADA — a plataforma já usa
+ * dados reais. A função continua existindo (vazia) para não quebrar as
+ * páginas que ainda a chamam.
  */
-let _seeded = false;
-let _seeding: Promise<void> | null = null;
-
 export async function ensureSeeded(): Promise<void> {
-  if (_seeded) return;
-  if (_seeding) return _seeding;
-
-  _seeding = (async () => {
-    try {
-      const existing = await db.select({ id: users.id }).from(users).limit(1);
-      if (existing.length === 0) {
-        await seedDatabase();
-        console.log("[seed] banco semeado com dados de demonstração");
-      }
-      _seeded = true;
-    } catch (err) {
-      // Não propaga o erro — a aplicação deve funcionar mesmo sem seed
-      // (ex.: banco recém-criado sem as tabelas ainda).
-      console.error("[seed] falha ao semear (ignorado):", err);
-      // Reseta para tentar novamente na próxima requisição
-      _seeding = null;
-    }
-  })();
-
-  return _seeding;
+  return;
 }
