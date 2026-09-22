@@ -97,6 +97,13 @@ export function EnrollButton({
             automaticamente.
           </p>
         </div>
+
+        <button onClick={() => setPhase({ step: "idle" })} className="w-full text-center text-xs text-ivory-300/60 hover:text-gold-300">
+          Voltar
+        </button>
+      </div>
+    );
+  }
         {phase.invoiceUrl && (
           
             href={phase.invoiceUrl}
@@ -107,13 +114,6 @@ export function EnrollButton({
             Abrir cobrança <ExternalLink className="size-4" />
           </a>
         )}
-        <button onClick={() => setPhase({ step: "idle" })} className="w-full text-center text-xs text-ivory-300/60 hover:text-gold-300">
-          Voltar
-        </button>
-      </div>
-    );
-  }
-
   if (phase.step === "askCpf") {
     return (
       <div className="space-y-3">
