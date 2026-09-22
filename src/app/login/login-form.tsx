@@ -40,17 +40,19 @@ export function LoginForm() {
     }
   }
 
-  function fillDemo(kind: "admin" | "student") {
-    setMode("login");
-    setError(null);
-    if (kind === "admin") {
-      setEmail("admin@lumen.app");
-      setPassword("admin123");
-    } else {
-      setEmail("aluna@lumen.app");
-      setPassword("aluno123");
-    }
-  }
+      <div className="mt-6 border-t border-ink-700 pt-5">
+        <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-widest text-ivory-300/50">
+          Acesso rápido de demonstração
+        </p>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <button onClick={() => fillDemo("admin")} className="rounded-xl border border-gold-500/25 bg-gold-500/10 px-3 py-2.5 font-semibold text-gold-300 transition hover:bg-gold-500/20">
+            Administrador
+          </button>
+          <button onClick={() => fillDemo("student")} className="rounded-xl border border-ink-600 bg-ink-800 px-3 py-2.5 font-semibold text-ivory-200 transition hover:border-gold-500/40">
+            Aluno
+          </button>
+        </div>
+      </div>
 
   return (
     <div className="glass rounded-3xl p-8 shadow-2xl">
