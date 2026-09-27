@@ -12,11 +12,12 @@ import {
   Clock3,
   Download,
   FileText,
+  Image as ImageIcon,
   LoaderCircle,
   MonitorPlay,
   Trophy,
 } from "lucide-react";
-import { toYouTubeEmbed } from "@/lib/format";
+import { getVideoEmbed } from "@/lib/format";
 
 type AttachmentData = { id: string; name: string; url: string; fileType: string };
 type ExamData = { id: string; title: string; timeLimitMin: number };
@@ -37,6 +38,21 @@ export type PlayerModule = {
   lessons: PlayerLesson[];
   exams?: ExamData[];
 };
+
+function AttachmentIcon({ fileType }: { fileType: string }) {
+  const type = fileType.toLowerCase();
+  if (type === "image" || type === "jpg" || type === "jpeg" || type === "png" || type === "gif" || type === "webp") {
+    return <ImageIcon className="size-4" />;
+  }
+  return <FileText className="size-4" />;
+}
+
+function AttachmentBadgeColor(fileType: string): string {
+  const type = fileType.toLowerCase();
+  if (type === "pdf") return "bg-red-500/15 text-red-300";
+  if (["image", "jpg", "jpeg", "png", "gif", "webp"].includes(type)) return "bg-emerald-500/15 text-emerald-300";
+  return "bg-blue-500/15 text-blue-300";
+}
 
 export function CoursePlayer({
   courseTitle,
@@ -70,6 +86,8 @@ export function CoursePlayer({
   const next = currentIndex >= 0 ? flat[currentIndex + 1] : null;
   const pct = flat.length ? Math.round((completed.size / flat.length) * 100) : 0;
 
+  const embed = current?.videoUrl ? getVideoEmbed(current.videoUrl) : null;
+
   function toggleModule(id: string) {
     setOpenModules((prev) => {
       const s = new Set(prev);
@@ -96,11 +114,9 @@ export function CoursePlayer({
     }
   }
 
-  const embed = current?.videoUrl ? toYouTubeEmbed(current.videoUrl) : null;
-
   return (
     <div className="flex min-h-screen flex-col bg-ink-950 lg:h-screen lg:flex-row lg:overflow-hidden">
-      {/* Trilha lateral */}
+      {/* ── Trilha lateral ── */}
       <aside className="order-2 w-full border-t border-ink-800 lg:order-1 lg:h-full lg:w-[400px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-t-0">
         <div className="sticky top-0 z-10 border-b border-ink-800 bg-ink-950/95 p-5 backdrop-blur">
           <Link
@@ -143,6 +159,7 @@ export function CoursePlayer({
                   className={`size-4 text-ivory-300/50 transition-transform ${openModules.has(mod.id) ? "rotate-180" : ""}`}
                 />
               </button>
+
               {openModules.has(mod.id) && (
                 <div className="border-t border-ink-800">
                   <ul className="p-2">
@@ -155,7 +172,7 @@ export function CoursePlayer({
                             onClick={() => setCurrentId(lesson.id)}
                             className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition ${
                               isActive
-                                ? "bg-gold-500/15 text-gold-200"
+                                ? "bg-gold-500/10 font-semibold text-gold-200"
                                 : "text-ivory-200/80 hover:bg-ink-850"
                             }`}
                           >
@@ -206,29 +223,54 @@ export function CoursePlayer({
         </div>
       </aside>
 
-      {/* Área do player */}
+      {/* ── Área do player ── */}
       <section className="order-1 flex flex-1 flex-col lg:order-2 lg:h-full lg:overflow-y-auto">
+        {/* Player de vídeo */}
         <div className="relative aspect-video w-full bg-black lg:aspect-auto lg:h-[62vh] lg:shrink-0">
-          {embed ? (
+          {embed?.type === "youtube" || embed?.type === "vimeo" || embed?.type === "panda" ? (
             <iframe
               key={current?.id}
-              src={`${embed}?rel=0`}
+              src={embed.src}
               title={current?.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
+              className="absolute inset-0 h-full w-full border-0"
+            />
+          ) : embed?.type === "direct" ? (
+            <video
+              key={current?.id}
+              src={embed.src}
+              controls
               className="absolute inset-0 h-full w-full"
             />
-          ) : current?.videoUrl ? (
-            <video key={current.id} src={current.videoUrl} controls className="absolute inset-0 h-full w-full" />
           ) : (
             <div className="grain absolute inset-0 grid place-items-center bg-gradient-to-br from-ink-900 to-ink-950">
               <div className="text-center">
                 <MonitorPlay className="mx-auto size-14 text-gold-500/50" />
-                <p className="mt-5 font-display text-xl font-semibold text-ivory-100">Vídeo em preparação</p>
+                <p className="mt-5 font-display text-xl font-semibold text-ivory-100">
+                  {current?.videoUrl ? "Formato de vídeo não suportado" : "Vídeo em preparação"}
+                </p>
+                {current?.videoUrl && (
+                  <p className="mt-2 text-xs text-ivory-300/50">
+                    Suportamos YouTube, Vimeo e Panda Video
+                  </p>
+                )}
               </div>
             </div>
           )}
         </div>
+
+        {/* Badge da plataforma */}
+        {embed && (
+          <div className="flex justify-end border-b border-ink-800 bg-ink-950 px-5 py-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-ivory-300/30">
+              {embed.type === "youtube" && "YouTube"}
+              {embed.type === "vimeo" && "Vimeo"}
+              {embed.type === "panda" && "Panda Video"}
+              {embed.type === "direct" && "Vídeo direto"}
+            </span>
+          </div>
+        )}
 
         {current && (
           <div className="flex-1 p-6 lg:p-10">
@@ -266,11 +308,11 @@ export function CoursePlayer({
                         rel="noreferrer"
                         className="flex items-center gap-3 rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm transition hover:border-gold-500/40 hover:bg-ink-800"
                       >
-                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-blue-500/15 text-blue-300">
-                          <FileText className="size-4" />
+                        <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${AttachmentBadgeColor(att.fileType)}`}>
+                          <AttachmentIcon fileType={att.fileType} />
                         </span>
                         <span className="flex-1 font-medium text-ivory-100">{att.name}</span>
-                        <span className="rounded-full bg-ink-800 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-ivory-300/50">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${AttachmentBadgeColor(att.fileType)}`}>
                           {att.fileType}
                         </span>
                         <Download className="size-4 text-gold-400" />
@@ -280,6 +322,7 @@ export function CoursePlayer({
                 </div>
               )}
 
+              {/* ── AÇÕES ── */}
               <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-ink-800 pt-8">
                 {completed.has(current.id) ? (
                   <span className="flex items-center gap-2.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-6 py-3.5 text-sm font-bold text-emerald-300">
