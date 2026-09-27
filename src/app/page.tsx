@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BadgeCheck,
   BookOpenCheck,
   GraduationCap,
   Library,
@@ -17,7 +16,7 @@ import { SetupBanner } from "@/components/setup-banner";
 import { getSessionUser } from "@/lib/auth";
 import { getCourseSummaries } from "@/lib/queries";
 import { db } from "@/db";
-import { users, enrollments } from "@/db/schema";
+import { users } from "@/db/schema";
 import { count } from "drizzle-orm";
 import type { Metadata } from "next";
 
@@ -74,20 +73,8 @@ export default async function HomePage() {
     }
   }
 
-  // Contadores reais
+  // Apenas o número de cursos é exibido publicamente
   const totalCourses = allCourses.length;
-  let totalStudents = 0;
-  let totalEnrollments = 0;
-  if (dbOk) {
-    try {
-      const [s] = await db.select({ total: count() }).from(users);
-      const [e] = await db.select({ total: count() }).from(enrollments);
-      totalStudents = s?.total ?? 0;
-      totalEnrollments = e?.total ?? 0;
-    } catch {
-      // banco não conectado — mantém zero
-    }
-  }
 
   const featured = allCourses.slice(0, 6);
 
@@ -156,28 +143,7 @@ export default async function HomePage() {
                     {totalCourses === 1 ? "Curso disponível" : "Cursos disponíveis"}
                   </p>
                 </div>
-                {totalStudents > 0 && (
-                  <div>
-                    <Users className="mb-3 size-5 text-gold-400" />
-                    <p className="font-display text-3xl font-semibold text-ivory-50">
-                      {totalStudents}
-                    </p>
-                    <p className="mt-1 text-xs uppercase tracking-widest text-ivory-300/60">
-                      {totalStudents === 1 ? "Aluno cadastrado" : "Alunos cadastrados"}
-                    </p>
-                  </div>
-                )}
-                {totalEnrollments > 0 && (
-                  <div>
-                    <BadgeCheck className="mb-3 size-5 text-gold-400" />
-                    <p className="font-display text-3xl font-semibold text-ivory-50">
-                      {totalEnrollments}
-                    </p>
-                    <p className="mt-1 text-xs uppercase tracking-widest text-ivory-300/60">
-                      {totalEnrollments === 1 ? "Matrícula ativa" : "Matrículas ativas"}
-                    </p>
-                  </div>
-                )}
+
               </div>
             </Reveal>
           )}
