@@ -3,12 +3,9 @@ import {
   ArrowRight,
   BadgeCheck,
   BookOpenCheck,
-  Flame,
   GraduationCap,
-  Landmark,
   Library,
   PlayCircle,
-  ScrollText,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -16,67 +13,88 @@ import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { Reveal } from "@/components/reveal";
 import { CourseCard } from "@/components/course-card";
+import { SetupBanner } from "@/components/setup-banner";
 import { getSessionUser } from "@/lib/auth";
 import { getCourseSummaries } from "@/lib/queries";
-import { ensureSeeded } from "@/db/seed";
-import { databaseUrl } from "@/db";
-import { SetupBanner } from "@/components/setup-banner";
+import { db } from "@/db";
+import { users, enrollments } from "@/db/schema";
+import { count } from "drizzle-orm";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
-
-const PILLARS = [
-  {
-    icon: ScrollText,
-    title: "Fidelidade às Escrituras",
-    text: "Todo curso parte do texto bíblico, respeitando sua gramática, contexto e a linha da fé histórica.",
-  },
-  {
-    icon: Landmark,
-    title: "Rigor acadêmico",
-    text: "Conteúdo com fundamentação erudita, bibliografia qualificada e linguagem acessível a todos.",
-  },
-  {
-    icon: Flame,
-    title: "Piedade e vocação",
-    text: "Conhecimento que aquece o coração: formação intelectual a serviço da adoração e do ministério.",
-  },
-];
+export const metadata: Metadata = {
+  title: "Lumen — Escola de Teologia",
+  description:
+    "Cursos completos de teologia sistemática, exegese, línguas bíblicas e ministério.",
+};
 
 const MARQUEE_ITEMS = [
   "Teologia Sistemática",
-  "Hermenêutica",
+  "Hermenêutica Bíblica",
   "Grego Koiné",
-  "Hebraico Bíblico",
-  "História da Igreja",
   "Homilética",
+  "História da Igreja",
   "Aconselhamento Bíblico",
-  "Apologética",
-  "Antigo Testamento",
-  "Novo Testamento",
+  "Escatologia",
+  "Eclesiologia",
 ];
 
-export default async function Home() {
-  // Tenta semear dados — nunca lança exceção
-  await ensureSeeded().catch(() => null);
+const PILLARS = [
+  {
+    icon: BookOpenCheck,
+    title: "Rigor bíblico",
+    text: "Todo conteúdo é fundamentado nas Escrituras, com exegese cuidadosa e referências teológicas sólidas.",
+  },
+  {
+    icon: GraduationCap,
+    title: "Formação prática",
+    text: "Cursos pensados para pastores, líderes e leigos que desejam servir com mais preparo e clareza.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Excelência acadêmica",
+    text: "Aulas estruturadas com profundidade, provas, materiais de apoio e certificado de conclusão.",
+  },
+];
 
-  // Tenta buscar dados — falha graciosamente
-  const [user, courses, dbOk] = await Promise.all([
+export default async function HomePage() {
+  const [user, allCourses] = await Promise.all([
     getSessionUser().catch(() => null),
     getCourseSummaries({ publishedOnly: true }).catch(() => []),
-    // testa conexão simples via pool.query
-    import("@/db").then(({ pool }) =>
-      pool.query("SELECT 1").then(() => true).catch(() => false)
-    ),
   ]);
 
-  const featured = courses.slice(0, 6);
-  const dbConfigured = Boolean(databaseUrl);
+  // Tenta conectar ao banco para verificar se está configurado
+  let dbConfigured = Boolean(process.env.DATABASE_URL);
+  let dbOk: unknown = null;
+  if (dbConfigured) {
+    try {
+      dbOk = await db.select({ total: count() }).from(users).limit(1);
+    } catch {
+      dbOk = null;
+    }
+  }
+
+  // Contadores reais
+  const totalCourses = allCourses.length;
+  let totalStudents = 0;
+  let totalEnrollments = 0;
+  if (dbOk) {
+    try {
+      const [s] = await db.select({ total: count() }).from(users);
+      const [e] = await db.select({ total: count() }).from(enrollments);
+      totalStudents = s?.total ?? 0;
+      totalEnrollments = e?.total ?? 0;
+    } catch {
+      // banco não conectado — mantém zero
+    }
+  }
+
+  const featured = allCourses.slice(0, 6);
 
   return (
     <main className="min-h-screen bg-ink-950">
       <Nav user={user ? { name: user.name, role: user.role } : null} />
 
-      {/* Banner de configuração — aparece apenas se o banco não estiver ok */}
       {(!dbConfigured || !dbOk) && (
         <SetupBanner dbConfigured={dbConfigured} dbConnected={Boolean(dbOk)} />
       )}
@@ -125,23 +143,44 @@ export default async function Home() {
             </div>
           </Reveal>
 
-          <Reveal delay={0.45}>
-            <div className="mt-16 grid max-w-2xl grid-cols-3 gap-6 border-t border-ivory-100/10 pt-8">
-              {[
-                { icon: Library, big: `${courses.length || "6"}+`, small: "Cursos completos" },
-                { icon: Users, big: "1.200+", small: "Alunos formados" },
-                { icon: BadgeCheck, big: "100%", small: "Conteúdo próprio" },
-              ].map((s) => (
-                <div key={s.small}>
-                  <s.icon className="mb-3 size-5 text-gold-400" />
-                  <p className="font-display text-3xl font-semibold text-ivory-50">{s.big}</p>
+          {/* Contadores reais — só aparecem se houver dados */}
+          {totalCourses > 0 && (
+            <Reveal delay={0.45}>
+              <div className="mt-16 flex flex-wrap gap-10 border-t border-ivory-100/10 pt-8">
+                <div>
+                  <Library className="mb-3 size-5 text-gold-400" />
+                  <p className="font-display text-3xl font-semibold text-ivory-50">
+                    {totalCourses}
+                  </p>
                   <p className="mt-1 text-xs uppercase tracking-widest text-ivory-300/60">
-                    {s.small}
+                    {totalCourses === 1 ? "Curso disponível" : "Cursos disponíveis"}
                   </p>
                 </div>
-              ))}
-            </div>
-          </Reveal>
+                {totalStudents > 0 && (
+                  <div>
+                    <Users className="mb-3 size-5 text-gold-400" />
+                    <p className="font-display text-3xl font-semibold text-ivory-50">
+                      {totalStudents}
+                    </p>
+                    <p className="mt-1 text-xs uppercase tracking-widest text-ivory-300/60">
+                      {totalStudents === 1 ? "Aluno cadastrado" : "Alunos cadastrados"}
+                    </p>
+                  </div>
+                )}
+                {totalEnrollments > 0 && (
+                  <div>
+                    <BadgeCheck className="mb-3 size-5 text-gold-400" />
+                    <p className="font-display text-3xl font-semibold text-ivory-50">
+                      {totalEnrollments}
+                    </p>
+                    <p className="mt-1 text-xs uppercase tracking-widest text-ivory-300/60">
+                      {totalEnrollments === 1 ? "Matrícula ativa" : "Matrículas ativas"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Reveal>
+          )}
         </div>
 
         {/* Marquee */}
@@ -220,10 +259,10 @@ export default async function Home() {
               <div className="mt-14 rounded-3xl border border-dashed border-ink-600 p-16 text-center">
                 <BookOpenCheck className="mx-auto size-10 text-gold-500/50" />
                 <p className="mt-5 font-display text-xl text-ivory-300/60">
-                  Os cursos aparecerão aqui após a configuração do banco de dados.
+                  Em breve novos cursos disponíveis.
                 </p>
-                <Link href="/guia" className="btn-gold mt-7 inline-flex">
-                  Ver guia de configuração
+                <Link href="/login" className="btn-gold mt-7 inline-flex">
+                  Criar minha conta
                 </Link>
               </div>
             </Reveal>
@@ -255,7 +294,7 @@ export default async function Home() {
                 n: "02",
                 icon: BookOpenCheck,
                 t: "Escolha seu curso",
-                d: "Matricule-se com PIX, boleto ou cartão via Asaas — ou comece pelos cursos gratuitos.",
+                d: "Matricule-se e acesse o conteúdo completo — aulas, provas e materiais de apoio.",
               },
               {
                 n: "03",
@@ -299,8 +338,8 @@ export default async function Home() {
               Comece hoje a sua jornada de estudo
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-lg text-ivory-300/75">
-              Junte-se a centenas de alunos aprofundando o conhecimento das
-              Escrituras com dedicação e beleza.
+              Junte-se aos alunos aprofundando o conhecimento das Escrituras com
+              dedicação e beleza.
             </p>
             <div className="mt-10 flex flex-wrap justify-center gap-4">
               <Link href="/login" className="btn-gold !px-9 !py-4 !text-base">
