@@ -25,24 +25,28 @@ export function Footer() {
             Plataforma
           </p>
           <ul className="space-y-2.5 text-ivory-300/80">
-            <li><Link className="hover:text-gold-300" href="/cursos">Catálogo de cursos</Link></li>
-            <li><Link className="hover:text-gold-300" href="/login">Área do aluno</Link></li>
-            <li><Link className="hover:text-gold-300" href="/admin">Administração</Link></li>
+            <li><Link className="transition hover:text-gold-300" href="/cursos">Catálogo de cursos</Link></li>
+            <li><Link className="transition hover:text-gold-300" href="/painel">Área do aluno</Link></li>
           </ul>
         </div>
 
         <div className="text-sm">
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-gold-400">
-            Recursos
+            Contato
           </p>
           <ul className="space-y-2.5 text-ivory-300/80">
-            <li>Aulas em vídeo com progresso</li>
-            <li>Cobranças via Asaas (PIX, boleto, cartão)</li>
-            <li>Notificações por WhatsApp (Meta)</li>
-            <li>Hospedado na Vercel · banco Supabase</li>
+            <li>
+              <a
+                href="mailto:contato@escolateologica.com.br"
+                className="transition hover:text-gold-300"
+              >
+                contato@escolateologica.com.br
+              </a>
+            </li>
           </ul>
         </div>
       </div>
+
       <div className="border-t border-ink-800 py-6 text-center text-xs text-ivory-300/50">
         © {new Date().getFullYear()} Lumen — Escola de Teologia. Todos os direitos reservados.
       </div>
