@@ -1,0 +1,1240 @@
+/* ════════════════════════════════════════════════════════════
+   O CHAT DO PACIENTE
+   14/10/2026
+
+   ⚠️ ESTE ARQUIVO NASCEU DE DOIS DEFEITOS QUE O TOM RELATOU DO
+      CHAT ATUAL, NO CELULAR DELE:
+
+      1. *"às vezes tenho que tirar o zoom para encaixar"*
+      2. *"o teclado às vezes esconde informações que estão
+         sendo escritas"*
+
+   Os dois têm causa conhecida e conserto conhecido, e os dois
+   consertos estão marcados aqui com ⭐⭐⭐. Eles são a parte
+   mais importante deste arquivo — mais que a cor.
+   ════════════════════════════════════════════════════════════ */
+
+
+/* ════════════════════════════════════════════════════════════
+   ⭐⭐⭐ DEFEITO 1 · "TENHO QUE TIRAR O ZOOM PARA ENCAIXAR"
+
+   A causa quase sempre é o **zoom automático do iOS**: o Safari
+   dá zoom na página quando o usuário toca num campo cuja fonte
+   é MENOR QUE 16px. Ele aproxima, e não volta sozinho — o
+   paciente fica com a página grande e pinça para fora.
+
+   Não é configuração do telefone: é regra do navegador.
+
+   ⚠️ A "solução" que todo mundo tenta primeiro é
+      `maximum-scale=1, user-scalable=no` no viewport. O chat de
+      hoje tem exatamente isso, e mesmo assim o problema
+      acontece — porque o iOS ignora essa meta desde a versão
+      10, de propósito: desligar o zoom quebra a acessibilidade
+      de quem enxerga pouco.
+
+   ⭐ O conserto de verdade é um número: **16px**. Todo campo
+      onde se digita, em qualquer tamanho de tela.
+   ════════════════════════════════════════════════════════════ */
+
+.chat-raiz input,
+.chat-raiz textarea,
+.chat-raiz select,
+.chat-raiz button {
+  /* 16px exatos. Abaixo disso o iOS dá zoom; acima não precisa.
+     Está escrito em px, e não em rem, porque quem lê este
+     número é o navegador, não a nossa escala tipográfica —
+     um rem que mude amanhã traria o defeito de volta. */
+  font-size: 16px;
+  font-family: inherit;
+}
+
+/* ⭐⭐ E nada pode vazar pela lateral. Tela que rola de lado é a
+   outra metade do "tirar o zoom": o paciente afasta para achar
+   o que escapou. */
+.chat-raiz,
+.chat-raiz * { max-width: 100%; }
+.chat-raiz { overflow-x: hidden; }
+
+/* Nome de médico comprido, link do hospital, e-mail digitado
+   sem espaço — tudo que não tem onde quebrar, quebra aqui. */
+.chat-balao, .chat-opcao, .chat-resumo-linha {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   ⭐⭐⭐ DEFEITO 2 · "O TECLADO ESCONDE O QUE ESTÁ SENDO ESCRITO"
+
+   Causa: `height: 100vh`.
+
+   No celular, `100vh` é a altura da tela **sem** o teclado — e
+   ela NÃO diminui quando o teclado abre. O navegador
+   simplesmente empurra a página para cima, e os últimos
+   centímetros (onde ficam o campo e a última mensagem) saem
+   por baixo do teclado.
+
+   ⭐ São dois consertos, e os dois são necessários:
+
+   1. **`100dvh`** (dynamic viewport height) — a altura que
+      ENCOLHE quando o teclado abre. É o que corrige o caso
+      normal. O `100vh` fica como reserva para navegador velho,
+      na linha de cima: quem não entende `dvh` ignora a segunda
+      linha e fica com a primeira.
+
+   2. **a altura medida pelo JavaScript** (`--chat-altura`), que
+      o `Chat.tsx` escreve usando a `visualViewport`. É o que
+      resolve o iOS, onde o `dvh` sozinho ainda deixa a barra
+      do Safari por cima.
+
+   ⚠️ Nunca `position: fixed` no campo de digitação. É a outra
+      tentativa comum, e no iOS ela é pior: o campo fixo fica
+      ATRÁS do teclado, parado, enquanto o resto rola.
+   ════════════════════════════════════════════════════════════ */
+
+.chat-raiz {
+  height: 100vh;             /* reserva, para navegador antigo */
+  height: 100dvh;            /* o que encolhe com o teclado    */
+  height: var(--chat-altura, 100dvh);  /* o que o JS mediu     */
+
+  display: flex;
+  flex-direction: column;
+  background: var(--chat-fundo, #f4f6f9);
+  color: #1f2430;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  /* O respiro do iPhone com faixa preta embaixo. */
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-sizing: border-box;
+}
+
+/* ════════════════════════════════════════════════════════════
+   ⭐⭐⭐ A JANELA PRECISA SER FLEX EM TODA LARGURA
+
+   ⚠️ DEFEITO ACHADO EM 14/10, E ELE ESTAVA AQUI DESDE O
+      PRIMEIRO DIA, ESCONDIDO.
+
+   Estas quatro linhas moravam SÓ dentro do
+   `@media (min-width: 900px)`. No celular, a `.chat-janela`
+   era um `div` comum: ela crescia com o conteúdo, e o
+   `.chat-corpo` crescia junto — o `flex: 1 1 auto` dele não
+   limitava nada, porque o PAI não era flex.
+
+   O resultado: a conversa nunca rolava. Ela empurrava o
+   cabeçalho para fora por cima e o campo de digitar para fora
+   por baixo. Com 20 mensagens, o paciente ficava sem topo e
+   sem campo.
+
+   ------------------------------------------------------------
+   ⭐⭐ POR QUE NINGUÉM TINHA VISTO
+
+   Porque com três mensagens cabe tudo, e a tela fica perfeita.
+   A prévia tinha DUAS especialidades e um CPF que não era
+   reconhecido — conversa curta, tela certa, placar verde.
+
+   Só apareceu quando a lista virou nove e o caminho virou
+   dez passos. É a sétima vez neste projeto que a bancada mais
+   pobre que a produção deixa passar um defeito: ela não avisa
+   que está errada, ela passa verde.
+
+   ⭐ E quem achou não foi a foto: foi a MEDIDA. A foto da tela
+      mostrava uma conversa bonita; o número `corpoAltura: 1547`
+      dentro de uma raiz de `844` é que não tinha como ser
+      desculpado.
+   ════════════════════════════════════════════════════════════ */
+
+.chat-janela {
+  flex: 1 1 auto;
+  min-height: 0;             /* sem isto o flex não deixa rolar */
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ⭐ O corpo é quem rola — não a página. Sem isto o `<body>`
+   rola junto, o cabeçalho sobe e o paciente perde a referência
+   de onde está. */
+.chat-corpo {
+  flex: 1 1 auto;
+  min-height: 0;             /* sem isto o flex não deixa rolar */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  /* ⭐⭐ Um respiro no fim: a última mensagem nunca cola na
+     borda de cima do campo de digitar. */
+  scroll-padding-bottom: 24px;
+
+  /* A textura do fundo sai da cor do hospital (`primaryGhost`,
+     6% de opacidade). Quase não se vê — e é por isso que
+     funciona: tira o cinza chapado sem competir com os balões. */
+  background: var(--chat-fundo);
+  background-image:
+    radial-gradient(circle at 25% 25%, var(--chat-fantasma) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, var(--chat-fantasma) 0%, transparent 50%);
+}
+
+/* A barra de rolagem fininha. No Chrome e no Safari a padrão é
+   larga e cinza-escuro, e dentro de um iframe de 440px ela
+   rouba espaço de verdade. */
+/* ════════════════════════════════════════════════════════════
+   ⭐⭐⭐ NADA DENTRO DA CONVERSA ENCOLHE
+
+   ⚠️ SEGUNDO DEFEITO ACHADO EM 14/10, E ESTE FUI EU QUEM
+      PLANTOU UMA HORA ANTES.
+
+   O `.chat-corpo` é `display: flex; flex-direction: column`.
+   Quando o conteúdo passa da altura dele — o que acontece em
+   TODA conversa de verdade — o flex faz o que ele foi feito
+   para fazer: **encolhe os filhos** até caber.
+
+   Um balão de texto resiste, porque o texto tem altura mínima.
+   Mas eu tinha acabado de dar `overflow: hidden` ao
+   `.chat-cal` (para a faixa colorida do mês respeitar o canto
+   arredondado) — e `overflow: hidden` ensina ao flex que
+   aquele filho PODE ser cortado.
+
+   Resultado medido: `calAltura: 2`. O calendário inteiro
+   espremido em dois pixels. Os 12 dias com vaga estavam lá,
+   clicáveis, no HTML e no placar — e invisíveis.
+
+   ⭐⭐ "Teste que passa pelo motivo errado é pior que teste que
+      falha": a prova contava os dias e achava 12. A pergunta
+      que ela não fazia era *"dá para ver?"*.
+
+   ⭐ `flex: 0 0 auto` em TODO filho direto, e não só no
+      calendário. Numa lista de mensagens, encolher é sempre
+      errado: a rolagem é que existe para isso.
+   ════════════════════════════════════════════════════════════ */
+.chat-corpo > * { flex: 0 0 auto; }
+
+.chat-corpo::-webkit-scrollbar { width: 6px; }
+.chat-corpo::-webkit-scrollbar-track { background: transparent; }
+.chat-corpo::-webkit-scrollbar-thumb {
+  background: #d1d5db; border-radius: 10px;
+}
+.chat-corpo::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+
+/* ════════════════════════════════════════════════════════════
+   ⭐⭐⭐ EMBUTIDO NO SITE DO HOSPITAL
+
+   O Tom, 14/10: *"o chat em si vai ficar em iframe no site dos
+   clientes. É o que vai ser compartilhado no robô em resposta
+   no WhatsApp."*
+
+   Dentro de um iframe a altura NÃO é a da tela: é a da caixa
+   que o site do hospital deu. `100%` é o único valor certo —
+   `100dvh` ali dentro mede a janela do navegador e faz o chat
+   passar por baixo do próprio iframe.
+
+   ⚠️ E é por isso que o `altura.ts` não mede nada quando está
+      embutido: a medição, que conserta o caso sozinho, estraga
+      este.
+   ════════════════════════════════════════════════════════════ */
+
+.chat-raiz.embutido {
+  height: 100%;
+  /* O iframe não tem barra de status nem faixa preta: o respiro
+     do celular é do site de fora, não daqui. */
+  padding-bottom: 0;
+}
+.chat-raiz.embutido .chat-topo { padding-top: 12px; }
+
+/* No computador, embutido, ele ocupa a caixa inteira — sem
+   vitrine e sem a moldura flutuante, que seriam uma segunda
+   janela dentro da página do hospital. */
+@media (min-width: 900px) {
+  .chat-raiz.embutido {
+    padding: 0; background: var(--chat-fundo);
+  }
+  .chat-raiz.embutido .chat-janela {
+    flex: 1 1 auto; border-radius: 0; box-shadow: none; max-width: 100%;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   A MARCA DO HOSPITAL
+
+   O Tom: *"sempre personalizada para o cliente, como se fosse
+   do Hospital."*
+
+   ⭐ Nenhuma cor deste arquivo é fixa. Todas saem das variáveis
+      que o `Chat.tsx` escreve a partir de `derivarMarca(cor)` —
+      a MESMA função que pinta o painel. O hospital escolhe uma
+      cor em Clientes → Configurar e as cinco saem dela.
+   ════════════════════════════════════════════════════════════ */
+
+.chat-raiz {
+  --chat-primaria:  #004994;
+  --chat-escura:    #003a76;
+  --chat-clara:     #1a62b0;
+  --chat-bg:        #f3f7fc;
+  --chat-tinta:     #ffffff;
+  --chat-fantasma:  rgba(0, 73, 148, .06);
+  --chat-fundo:     #f5f5f5;
+}
+
+/* ---------------- cabeçalho ---------------- */
+
+.chat-topo {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top, 0));
+  /* Degradê, pelo mesmo motivo do balão do paciente: a faixa
+     chapada achatava o topo inteiro. */
+  background: linear-gradient(135deg, var(--chat-primaria), var(--chat-escura));
+  color: var(--chat-tinta);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .12);
+  z-index: 3;
+}
+
+.chat-topo-logo {
+  width: 42px; height: 42px; flex: 0 0 42px;
+  border-radius: 12px; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; font-weight: 700; font-size: 15px;
+  color: var(--chat-primaria);
+}
+.chat-topo-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+.chat-topo-texto { flex: 1 1 auto; min-width: 0; }
+.chat-topo-texto h1 {
+  margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chat-topo-texto span {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .74rem; opacity: .9;
+}
+/* ⭐ O pontinho verde do "online" PISCA. É o detalhe que faz o
+   paciente entender que tem alguém (ou algo) do outro lado
+   agora — e não uma página parada. */
+.chat-topo-texto span i {
+  font-size: .5rem; color: #4ade80;
+  animation: chat-pulsa 2s infinite;
+}
+@keyframes chat-pulsa {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-topo-texto span i { animation: none; }
+}
+
+.chat-topo button {
+  background: rgba(255, 255, 255, .16); border: none; color: inherit;
+  width: 38px; height: 38px; border-radius: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s, transform .3s;
+}
+/* A seta de recomeçar dá uma volta. Dura 0,3s e diz, sem
+   texto, que aquele botão RODA a conversa de novo. */
+.chat-topo button:hover {
+  background: rgba(255, 255, 255, .28);
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-topo button:hover { transform: none; }
+}
+
+/* ---------------- os balões ---------------- */
+
+/* ⭐ A fala inteira: o balão MAIS a hora embaixo dele. A hora
+   precisa de um pai que saiba de que lado está, senão ela
+   aparece à esquerda numa fala que é do paciente. */
+.chat-fala {
+  max-width: 85%;
+  display: flex;
+  flex-direction: column;
+  animation: chat-entra .3s ease;
+}
+.chat-fala.bot { align-self: flex-start; }
+.chat-fala.eu  { align-self: flex-end; }
+
+/* ════════════════════════════════════════════════════════════
+   ⭐⭐⭐ O BALÃO QUE CARREGA OS BOTÕES — 17/10/2026
+
+   O Tom: *"o chat da versão apps script tá mais bonito."*
+
+   Comparando os prints dele com os meus, a diferença que mais
+   pesava não era cor nem sombra: lá a pergunta e a lista de
+   opções são **um cartão branco só**; aqui a pergunta era um
+   balão e os botões ficavam soltos no fundo cinza, parecendo
+   cada um um balão de mensagem separado.
+
+   O `Chat.tsx` passou a desenhar o `<Passo>` DENTRO do último
+   balão do bot. Aqui mora o resto: esse balão precisa de mais
+   largura (uma lista de nomes de médico não cabe em 85%) e de
+   um respiro maior por dentro.
+   ════════════════════════════════════════════════════════════ */
+
+.chat-fala.com-passo {
+  /* Quase a largura toda: é um painel de escolha, não uma
+     frase. Os 85% do balão de conversa apertariam a lista e
+     fariam "Ortopedia e Traumatologia" quebrar em duas linhas
+     dentro de cada botão. */
+  max-width: 96%;
+  align-self: stretch;
+}
+.chat-fala.com-passo .chat-balao { padding: 14px; }
+
+/* ⭐ Dentro de um cartão branco, a borda de 2px dos botões fica
+   pesada — ela foi desenhada para contrastar com o fundo
+   cinza. Aqui o que separa é uma linha fina e uma sombra
+   mínima, que é o que o chat de hoje faz. */
+.chat-fala.com-passo .chat-opcao {
+  border-width: 1.5px;
+  border-color: #eef1f5;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+}
+.chat-fala.com-passo .chat-opcao:hover,
+.chat-fala.com-passo .chat-opcao:active {
+  border-color: var(--chat-primaria);
+}
+
+/* ⚠️ Cartão dentro de cartão fica sujo. O resumo perde a
+   moldura quando está dentro do balão e vira só um bloco
+   cinza, como no chat de hoje. */
+.chat-fala.com-passo .chat-resumo {
+  border: none;
+  background: #f7f8fa;
+  border-radius: 12px;
+}
+.chat-fala.com-passo .chat-lgpd {
+  box-shadow: none;
+  background: #f7f8fa;
+  padding: 12px;
+}
+/* O aviso de erro/atenção também já está dentro do balão. */
+.chat-fala.com-passo .chat-aviso { margin-top: 10px; }
+
+@keyframes chat-entra {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+/* Quem usa teclado ou lê com ampliação não precisa da animação. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-fala, .chat-opcoes { animation: none; }
+  .chat-opcao:hover, .chat-opcao:active,
+  .chat-hora:hover,  .chat-hora:active { transform: none; }
+}
+
+.chat-balao {
+  padding: 12px 16px;
+  border-radius: 18px;
+  line-height: 1.5;
+  font-size: .9rem;
+}
+.chat-balao.bot {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+}
+/* ⭐ Degradê, não cor chapada. É o que dá profundidade ao balão
+   do paciente — e as duas pontas saem da MESMA cor que o
+   hospital escolheu, por `derivarMarca`. */
+.chat-balao.eu {
+  background: linear-gradient(135deg, var(--chat-primaria), var(--chat-clara));
+  color: var(--chat-tinta);
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 8px rgba(16, 24, 40, .2);
+}
+.chat-balao strong { font-weight: 600; }
+.chat-balao p { margin: 0 0 6px; }
+.chat-balao p:last-child { margin-bottom: 0; }
+
+/* A hora. Pequena de propósito — ela é referência, não
+   informação: serve para o paciente saber que a conversa é de
+   agora, não uma tela congelada. */
+.chat-marca-hora {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-top: 4px;
+  padding: 0 6px;
+}
+.chat-fala.eu .chat-marca-hora { text-align: right; }
+
+/* "digitando…" */
+.chat-digitando {
+  align-self: flex-start;
+  background: #fff; border: 1px solid #e5e7eb;
+  border-radius: 18px; border-bottom-left-radius: 4px;
+  padding: 12px 16px; display: flex; gap: 4px; align-items: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+}
+.chat-digitando i {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #9ca3af; animation: chat-pulo 1.4s infinite;
+}
+.chat-digitando i:nth-child(2) { animation-delay: .2s; }
+.chat-digitando i:nth-child(3) { animation-delay: .4s; }
+@keyframes chat-pulo {
+  0%, 60%, 100% { transform: none; opacity: .4; }
+  30%           { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ⭐⭐⭐ AS OPÇÕES — E O DEFEITO QUE O TOM VIU PRIMEIRO
+
+   14/10/2026, olhando o chat novo ao lado do que ele já tem:
+
+       *"Botões bagunçados fora da ordem, sem animações,
+         sem ícones das especialidades."*
+
+   Ele tinha razão nos três, e a causa do primeiro estava
+   exatamente aqui. A versão anterior deste bloco era:
+
+       display: flex; flex-wrap: wrap;
+       .chat-opcao { flex: 1 1 auto; min-width: 44%; }
+
+   ------------------------------------------------------------
+   POR QUE AQUILO SAÍA BAGUNÇADO
+
+   `flex-wrap` com `flex: 1 1 auto` deixa cada botão crescer
+   até o conteúdo dele pedir. "Clínica Geral" é largo,
+   "Pediatria" é estreito — então a primeira linha acomodava
+   dois, a segunda um só esticado na largura inteira, a
+   terceira dois de larguras diferentes. Nenhum botão alinhado
+   com o de cima.
+
+   ⚠️ E tem o pior: quantos cabem por linha depende do
+      COMPRIMENTO DO NOME. Quer dizer que a mesma tela muda de
+      arrumação de hospital para hospital, e eu nunca veria
+      isso testando com a lista da demonstração.
+
+   ⭐ O chat que o Tom já usa resolve isso da maneira óbvia e
+      eu não vi porque desenhei sem ter o CSS dele na mão:
+      **uma coluna só**. Todo botão com a mesma largura, a
+      mesma altura e o mesmo ponto de partida para o olho.
+
+   ------------------------------------------------------------
+   ⭐⭐ E A LISTA EM COLUNA NÃO É SÓ ESTÉTICA
+
+   Num celular, o polegar percorre uma coluna de cima para
+   baixo sem precisar mirar na horizontal. Em duas colunas
+   irregulares, cada toque é uma mira — e errar a mira na tela
+   de ESCOLHER O MÉDICO marca com o médico errado.
+   ════════════════════════════════════════════════════════════ */
+
+.chat-opcoes {
+  align-self: stretch;
+  /* ⭐ Uma coluna. Sem `wrap`, sem `flex: 1 1 auto`, sem
+     `min-width` em porcentagem — os três juntos é que faziam a
+     largura depender do nome. */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  /* A lista inteira entra junto com a pergunta que a trouxe. */
+  animation: chat-entra .3s ease;
+}
+
+.chat-opcao {
+  width: 100%;
+  /* ⭐⭐ Alvo de toque: 54px com o chip do ícone dentro. Botão
+     de 32px num celular faz o paciente acertar o de cima. */
+  min-height: 54px;
+  padding: 13px 16px;
+  background: #fff;
+  border: 2px solid #e5e7eb;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color .2s, background .2s, color .2s, transform .2s;
+}
+
+/* ⭐⭐⭐ A ANIMAÇÃO QUE FALTAVA.
+   O botão desliza 4px para a direita quando o dedo encosta. É
+   pouco, e é o que faz a tela parecer viva — a versão anterior
+   só trocava a cor da borda, e num celular (que não tem
+   `hover`) isso significava NENHUMA resposta ao toque.
+   `:active` junto com `:hover` de propósito: no celular só o
+   `:active` acontece. */
+.chat-opcao:hover,
+.chat-opcao:active {
+  border-color: var(--chat-primaria);
+  background: var(--chat-bg);
+  color: var(--chat-primaria);
+  transform: translateX(4px);
+}
+
+/* ⭐⭐ O CHIP DO ÍCONE — o terceiro item da reclamação.
+   O emoji vem do banco (`chat_especialidades.icone`, no
+   `037_icones.sql`); aqui mora só a caixinha onde ele senta. */
+.chat-opcao-icone {
+  width: 40px; height: 40px; flex: 0 0 40px;
+  background: var(--chat-bg);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; line-height: 1;
+  transition: background .2s;
+}
+/* Sem isto o chip some no `hover`: o fundo dele e o fundo do
+   botão viram a mesma cor. */
+.chat-opcao:hover  .chat-opcao-icone,
+.chat-opcao:active .chat-opcao-icone { background: #fff; }
+
+.chat-opcao-texto { flex: 1 1 auto; min-width: 0; }
+.chat-opcao-texto strong { display: block; font-weight: 600; font-size: .9rem; }
+.chat-opcao-texto small  {
+  display: block; margin-top: 2px; color: #9ca3af; font-size: .74rem;
+}
+.chat-opcao:hover  .chat-opcao-texto small,
+.chat-opcao:active .chat-opcao-texto small { color: inherit; opacity: .75; }
+
+/* A seta. Ela não é enfeite: é o que diz "isto leva a algum
+   lugar" antes do toque. */
+.chat-opcao-seta { flex: 0 0 auto; color: #d1d5db; font-size: .8rem; }
+.chat-opcao:hover  .chat-opcao-seta,
+.chat-opcao:active .chat-opcao-seta { color: inherit; }
+
+/* ⚠️ `forte` e `fraca` NÃO ganham chip nem seta: são ações
+   ("Continuar", "Confirmar"), não itens de uma lista. Dar
+   seta a elas ensinaria que seta = ação, e aí a seta das
+   opções deixa de significar alguma coisa. */
+.chat-opcao.forte {
+  background: var(--chat-primaria); border-color: var(--chat-primaria);
+  color: var(--chat-tinta);
+  justify-content: center; text-align: center; gap: 8px;
+  box-shadow: 0 4px 12px rgba(16, 24, 40, .18);
+}
+.chat-opcao.forte:hover,
+.chat-opcao.forte:active {
+  background: var(--chat-escura); border-color: var(--chat-escura);
+  color: var(--chat-tinta);
+  transform: translateY(-2px);   /* sobe, não desliza */
+}
+.chat-opcao.forte:disabled {
+  opacity: .5; cursor: default; transform: none; box-shadow: none;
+}
+.chat-opcao.fraca {
+  background: transparent; border-style: dashed; color: #6b7280;
+  justify-content: center; text-align: center;
+}
+.chat-opcao.fraca:hover,
+.chat-opcao.fraca:active { transform: none; }
+
+/* ---------------- o calendário ---------------- */
+
+/* ⭐ O calendário é um CARTÃO, com a faixa do mês na cor do
+   hospital. A versão anterior tinha as setas soltas sobre o
+   fundo cinza, sem moldura — parecia um pedaço de formulário
+   caído no meio da conversa. */
+.chat-cal {
+  align-self: stretch;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-top: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+  animation: chat-entra .3s ease;
+}
+.chat-cal-topo {
+  background: var(--chat-primaria);
+  color: var(--chat-tinta);
+  padding: 11px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-weight: 600; font-size: .88rem;
+}
+.chat-cal-topo button {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: none; background: rgba(255, 255, 255, .2);
+  color: inherit; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+}
+.chat-cal-topo button:hover:not(:disabled) { background: rgba(255, 255, 255, .32); }
+.chat-cal-topo button:disabled { opacity: .35; cursor: default; }
+
+.chat-cal-grade {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+  padding: 10px;
+}
+.chat-cal-cab {
+  text-align: center; font-size: 10px; font-weight: 700; color: #9ca3af;
+  text-transform: uppercase; letter-spacing: .03em; padding: 6px 2px;
+}
+.chat-cal-dia {
+  /* ⭐ `aspect-ratio` em vez de altura fixa é o que impede a
+     grade de estourar a largura num celular de 320px e virar
+     rolagem lateral. */
+  aspect-ratio: 1 / 1;
+  min-height: 34px;
+  position: relative;            /* o pontinho verde é `::after` */
+  border: 2px solid transparent; border-radius: 8px;
+  background: none; cursor: default;
+  font-size: .82rem; color: #d1d5db;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.chat-cal-dia.vazio { background: none; }
+.chat-cal-dia.tem   {
+  color: #374151; font-weight: 500; cursor: pointer;
+}
+.chat-cal-dia.tem:hover,
+.chat-cal-dia.tem:active { background: var(--chat-bg); color: var(--chat-primaria); }
+
+/* ⭐⭐ O PONTINHO VERDE embaixo do número.
+   Ele responde, sem texto e antes do toque, a única pergunta
+   que o paciente faz olhando um calendário: *"que dias têm
+   vaga?"*. Sem ele, dia com vaga e dia sem vaga se distinguem
+   só pelo tom do cinza — e tom de cinza no sol do celular não
+   se distingue. */
+.chat-cal-dia.tem::after {
+  content: '';
+  position: absolute; bottom: 4px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px; border-radius: 50%;
+  background: #059669;
+}
+.chat-cal-dia.sem { color: #d1d5db; cursor: default; }
+.chat-cal-dia.escolhido {
+  background: var(--chat-primaria);
+  color: var(--chat-tinta);
+}
+.chat-cal-dia.escolhido::after { background: var(--chat-tinta); }
+
+/* ---------------- as horas ---------------- */
+
+.chat-horas {
+  align-self: stretch;
+  /* ⭐ TRÊS COLUNAS FIXAS, e não `auto-fill`.
+     `auto-fill` fazia o número de colunas depender da largura
+     disponível — dois horários numa tela, quatro em outra, e a
+     grade mudando de forma entre o celular do paciente e o
+     meu. Três é o que o chat de hoje usa, e três é o que cabe
+     em qualquer celular. */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+  animation: chat-entra .3s ease;
+}
+.chat-hora {
+  min-height: 48px;
+  border: 2px solid #e5e7eb; border-radius: 12px;
+  background: #fff; cursor: pointer; font-weight: 600;
+  color: #374151;
+  transition: border-color .2s, background .2s, color .2s, transform .2s;
+}
+.chat-hora:hover,
+.chat-hora:active {
+  border-color: var(--chat-primaria);
+  background: var(--chat-primaria);
+  color: var(--chat-tinta);
+  transform: scale(1.05);
+}
+.chat-hora.escolhida {
+  background: var(--chat-primaria); border-color: var(--chat-primaria);
+  color: var(--chat-tinta);
+}
+
+/* ---------------- o resumo ---------------- */
+
+.chat-resumo {
+  align-self: stretch; background: #fff; border-radius: 14px;
+  border: 1.5px solid var(--chat-clara); overflow: hidden;
+}
+.chat-resumo-titulo {
+  background: var(--chat-bg); padding: 9px 14px;
+  font-size: .76rem; font-weight: 600; color: var(--chat-escura);
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.chat-resumo-linha {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 9px 14px; border-top: 1px solid #f0f3f7; font-size: .88rem;
+}
+.chat-resumo-linha span   { color: #6b7483; flex: 0 0 auto; }
+.chat-resumo-linha strong { text-align: right; font-weight: 600; }
+
+/* ---------------- avisos ---------------- */
+
+.chat-aviso {
+  align-self: stretch; border-radius: 12px; padding: 11px 14px;
+  font-size: .85rem; line-height: 1.45;
+}
+.chat-aviso.info     { background: var(--chat-bg); color: var(--chat-escura); }
+.chat-aviso.atencao  { background: #fff7e6; color: #8a5a00; }
+.chat-aviso.erro     { background: #fdecea; color: #9b2c22; }
+.chat-aviso strong   { display: block; margin-bottom: 3px; }
+
+/* ---------------- LGPD ---------------- */
+
+.chat-lgpd { align-self: stretch; background: #fff; border-radius: 14px;
+             padding: 14px; box-shadow: 0 1px 3px rgba(16, 24, 40, .08); }
+.chat-lgpd label {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 8px 0; cursor: pointer; font-size: .88rem; line-height: 1.4;
+}
+.chat-lgpd input[type="checkbox"] {
+  /* 20px: caixa pequena demais é o motivo nº 1 de alguém
+     "não conseguir marcar" num celular. */
+  width: 20px; height: 20px; flex: 0 0 20px; margin-top: 1px;
+  accent-color: var(--chat-primaria);
+}
+.chat-lgpd a { color: var(--chat-primaria); }
+
+/* ---------------- a área de digitar ---------------- */
+
+.chat-rodape {
+  flex: 0 0 auto;
+  background: #fff;
+  border-top: 1px solid #e8ecf2;
+  padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0));
+  z-index: 2;
+}
+.chat-campo { display: flex; gap: 8px; align-items: center; }
+.chat-campo input {
+  flex: 1 1 auto;
+  min-width: 0;                 /* flex não encolhe input sem isto */
+  padding: 12px 14px;
+  border: 1.5px solid #e3e8ef; border-radius: 12px;
+  background: #fafbfc;
+}
+.chat-campo input:focus {
+  outline: none; border-color: var(--chat-primaria); background: #fff;
+}
+.chat-campo button {
+  flex: 0 0 48px; width: 48px; height: 48px;
+  border: none; border-radius: 12px; cursor: pointer;
+  background: var(--chat-primaria); color: var(--chat-tinta);
+}
+.chat-campo button:disabled { opacity: .45; cursor: default; }
+
+.chat-selo {
+  text-align: center; font-size: .7rem; color: #97a0ae; margin-top: 7px;
+}
+
+/* ⭐ O botão de "ir para o fim", que aparece quando o paciente
+   rolou para cima e chegou mensagem nova. */
+.chat-descer {
+  position: absolute; right: 16px; bottom: 86px;
+  width: 42px; height: 42px; border-radius: 50%;
+  border: none; cursor: pointer; z-index: 4;
+  background: var(--chat-primaria); color: var(--chat-tinta);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
+}
+
+/* ---------------- a confirmação ---------------- */
+
+.chat-pronto {
+  position: fixed; inset: 0; z-index: 10;
+  background: rgba(16, 24, 40, .55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.chat-pronto-caixa {
+  background: #fff; border-radius: 18px; padding: 26px 22px;
+  max-width: 420px; width: 100%; text-align: center;
+  max-height: 90dvh; overflow-y: auto;
+}
+.chat-pronto-caixa .chat-icone {
+  width: 62px; height: 62px; border-radius: 50%; margin: 0 auto 14px;
+  background: var(--chat-bg); color: var(--chat-primaria);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.7rem;
+}
+.chat-pronto-caixa h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.chat-pronto-caixa .chat-resumo { margin: 16px 0; text-align: left; }
+
+
+/* ════════════════════════════════════════════════════════════
+   O DESKTOP
+
+   No celular o chat ocupa a tela inteira. No computador ele
+   fica numa coluna no meio, com a apresentação do hospital ao
+   lado — a mesma ideia do chat de hoje, agora montada a partir
+   do cadastro do cliente em vez de texto fixo.
+   ════════════════════════════════════════════════════════════ */
+
+@media (min-width: 900px) {
+  .chat-raiz {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+    background:
+      linear-gradient(135deg, var(--chat-escura) 0%, var(--chat-primaria) 100%);
+    padding: 28px;
+  }
+
+  .chat-vitrine {
+    display: flex; flex-direction: column; justify-content: center;
+    flex: 0 1 460px; color: #fff; padding: 0 40px 0 10px;
+  }
+  /* `display: flex`, `flex-direction` e `min-height: 0` NÃO
+     voltam aqui: eles valem em toda largura agora, lá em cima.
+     Aqui mora só o que é do computador. */
+  .chat-janela {
+    flex: 0 1 460px;
+    background: var(--chat-fundo);
+    border-radius: 24px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .4);
+    /* ⭐ A janela ENTRA deslizando da direita, com um quique no
+       fim (o `cubic-bezier` que passa de 1 e volta). É a
+       primeira coisa que o paciente vê no computador. */
+    animation: chat-janela-entra .6s cubic-bezier(.175, .885, .32, 1.275);
+  }
+  @keyframes chat-janela-entra {
+    from { opacity: 0; transform: translateX(30px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chat-janela { animation: none; }
+  }
+  .chat-topo { padding-top: 14px; border-radius: 0; }
+}
+
+/* A vitrine só existe no computador: no celular ela empurraria
+   a conversa para baixo da dobra.
+
+   ⚠️ TERCEIRO DEFEITO ACHADO EM 14/10. Esta linha era um
+      `.chat-vitrine { display: none; }` solto, e ela vem DEPOIS
+      do `@media (min-width: 900px)` que manda `display: flex`.
+      Mesma especificidade, e no CSS quem vem depois ganha —
+      então a vitrine NUNCA aparecia, em largura nenhuma. A
+      regra do computador existia e não valia.
+
+   ⭐ Com `max-width: 899px` as duas regras passam a falar de
+      larguras que não se cruzam, e a ordem no arquivo deixa de
+      decidir quem manda. Ordem decidindo comportamento é a
+      mesma armadilha do `case` do `icone_da_especialidade`,
+      noutra linguagem. */
+@media (max-width: 899px) {
+  .chat-vitrine { display: none; }
+}
+
+/* ════════════════════════════════════════════════════════════
+ *  ⭐⭐⭐ O LOGO SEM O QUADRADO BRANCO   (19/10/2026)
+ *
+ *  O Tom: *"para quem abre pelo computador, os logos precisam
+ *  não ter o fundo branco."*
+ *
+ *  O branco estava ali por um motivo honesto: logo colorido em
+ *  cima de fundo escuro some. Mas o efeito era um adesivo
+ *  colado na parede — e a vitrine é a parede do hospital.
+ *
+ *  ⭐ A saída é um vidro, não uma folha: fundo translúcido da
+ *     própria cor, com uma borda de luz. O logo respira, e
+ *     continua legível sobre o degradê.
+ *
+ *  ⚠️ A INICIAL (quando não há logo) continua precisando de
+ *     contraste próprio — ela é texto, não imagem, e texto
+ *     branco sobre vidro claro some. Por isso a cor dela é
+ *     branca aqui, e não `--chat-primaria` como era.
+ * ════════════════════════════════════════════════════════════ */
+.chat-vitrine-logo {
+  width: 76px; height: 76px; border-radius: 20px;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .28);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; margin-bottom: 18px;
+  font-weight: 700; font-size: 1.5rem; color: #fff;
+}
+.chat-vitrine-logo img {
+  width: 78%; height: 78%; object-fit: contain;
+  /* ⭐ Logo de hospital quase sempre é escuro, feito para papel
+     branco. Sobre o degradê ele sumiria. A sombra clara dá o
+     contorno sem repintar a marca de ninguém. */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .25));
+}
+
+/* O mesmo no alto da conversa, pelo mesmo motivo. */
+.chat-topo-logo {
+  background: rgba(255, 255, 255, .16) !important;
+  border: 1px solid rgba(255, 255, 255, .3);
+  color: #fff !important;
+}
+.chat-topo-logo img { width: 76%; height: 76%; }
+.chat-vitrine h2 { margin: 0 0 6px; font-size: 1.5rem; line-height: 1.25; }
+.chat-vitrine .chat-tagline { margin: 0 0 24px; opacity: .85; }
+
+.chat-vantagem {
+  display: flex; gap: 13px; align-items: center; margin-bottom: 16px;
+}
+.chat-vantagem i {
+  width: 40px; height: 40px; flex: 0 0 40px; border-radius: 11px;
+  background: rgba(255, 255, 255, .15);
+  display: flex; align-items: center; justify-content: center;
+}
+.chat-vantagem strong { display: block; font-size: .92rem; }
+.chat-vantagem span   { font-size: .8rem; opacity: .8; }
+
+.chat-vitrine-contato {
+  margin-top: 22px; padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, .2);
+  font-size: .85rem; opacity: .9;
+}
+.chat-vitrine-contato p { margin: 0 0 7px; display: flex; gap: 9px; }
+
+/* ---------------- a tela de "não achei o hospital" ---------------- */
+
+.chat-vazio {
+  flex: 1 1 auto; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  padding: 32px; text-align: center; color: #6b7483;
+}
+.chat-vazio i { font-size: 2.4rem; color: #c3c9d4; }
+.chat-vazio h2 { margin: 0; font-size: 1.05rem; color: #1f2430; }
+
+
+/* ════════════════════════════════════════════════════════════
+ *  ELE JÁ TEM CONSULTA COM ESTE PROFISSIONAL   (19/10/2026)
+ *
+ *  A data vem ANTES dos botões, e grande: é a informação que o
+ *  Tom pediu que aparecesse, e é o que faz a pessoa lembrar.
+ *  Botão em cima de aviso que ninguém leu é botão clicado no
+ *  escuro.
+ * ════════════════════════════════════════════════════════════ */
+.chat-ja-tem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--chat-primaria) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chat-primaria) 22%, transparent);
+}
+.chat-ja-tem strong {
+  font-size: 1.05rem;
+  color: var(--chat-primaria);
+  line-height: 1.3;
+}
+.chat-ja-tem span {
+  font-size: .82rem;
+  opacity: .72;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+ *  A PLACA DA PORTA   (19/10/2026)
+ *
+ *  Endereço, telefone, horário e CNPJ — tudo do cadastro do
+ *  hospital. O que estiver em branco não aparece: linha pela
+ *  metade é pior que linha nenhuma.
+ *
+ *  O CNPJ fica por último e menor, porque é o dado de que o
+ *  paciente menos precisa e o que mais tranquiliza quem
+ *  desconfia da página.
+ * ════════════════════════════════════════════════════════════ */
+.chat-vitrine-contato {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, .22);
+  display: flex; flex-direction: column; gap: 9px;
+}
+.chat-vitrine-contato p {
+  margin: 0; display: flex; gap: 11px; align-items: flex-start;
+  font-size: .9rem; line-height: 1.45; opacity: .92;
+}
+.chat-vitrine-contato p i {
+  width: 16px; flex: 0 0 16px; margin-top: 3px;
+  opacity: .72; text-align: center;
+}
+.chat-vitrine-cnpj {
+  margin: 14px 0 0 !important;
+  font-size: .76rem !important;
+  opacity: .6 !important;
+  letter-spacing: .02em;
+}
+
+
+/* ⭐ O que não pode ser cancelado aparece mesmo assim, apagado,
+   com o motivo. Sumir com ele faria o paciente achar que o
+   atendimento não existe — e ligar para perguntar. */
+.chat-opcao.apagada {
+  opacity: .62;
+  cursor: default;
+  background: transparent;
+}
+.chat-opcao.apagada:hover { transform: none; }
+.chat-opcao-nota {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  opacity: .9;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+ *  A CAIXINHA DO PEDIDO DE EXAME   (20/10/2026)
+ *
+ *  O número dentro dela é a ORDEM em que os horários vão ser
+ *  ocupados. Uma marca sem número diria "escolhido"; com o
+ *  número ela diz "escolhido, e é o segundo" — que é a
+ *  informação de que o paciente precisa para conferir a guia.
+ * ════════════════════════════════════════════════════════════ */
+.chat-opcao-caixa {
+  width: 26px; height: 26px; flex: 0 0 26px;
+  border-radius: 8px;
+  border: 2px solid color-mix(in srgb, var(--chat-primaria) 35%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .82rem;
+  color: #fff;
+  transition: background .15s, border-color .15s;
+}
+.chat-opcao-marcavel.marcada .chat-opcao-caixa {
+  background: var(--chat-primaria);
+  border-color: var(--chat-primaria);
+}
+.chat-opcao-marcavel.marcada {
+  border-color: var(--chat-primaria);
+  background: color-mix(in srgb, var(--chat-primaria) 7%, transparent);
+}
+
+/* Os itens do pedido, no resumo: um por linha, recuados. */
+.chat-resumo-itens strong {
+  display: flex; flex-direction: column; gap: 3px; text-align: right;
+}
+.chat-resumo-itens em {
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* ════════════════════════════════════════════════════════════
+ *  ⭐⭐⭐ A FOTO DO PEDIDO MÉDICO E A ENTREVISTA   (26/10/2026)
+ *
+ *  O Tom: *"o fluxo de exames não está solicitando foto do
+ *  pedido médico."*
+ *
+ *  ⚠️ O botão de escolher arquivo é um `<label>`, não um
+ *     `<button>`: `<input type="file">` só abre a câmera quando
+ *     é ele próprio que recebe o toque, e um `button` que chama
+ *     `.click()` no input por JavaScript é recusado por parte
+ *     dos navegadores de celular. O `input` fica dentro do
+ *     label, invisível, e o label inteiro vira o alvo.
+ * ════════════════════════════════════════════════════════════ */
+.chat-opcao-arquivo { position: relative; overflow: hidden; }
+
+/* ⚠️ `display: none` no input mataria o teclado/câmera em
+   alguns navegadores. Ele fica presente e sem tamanho. */
+.chat-opcao-arquivo input[type="file"] {
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Enquanto sobe: o alvo para de responder e DIZ que está
+   ocupado. Sem isto o paciente toca de novo e manda duas vezes. */
+.chat-opcao-arquivo.ocupada {
+  opacity: .6;
+  cursor: progress;
+  pointer-events: none;
+}
+
+/* ⭐ A entrevista no chat usa a MESMA tela do painel
+   (`.ent-*`, no estilo.css). Aqui só o encaixe: ela precisa
+   caber na largura do balão e rolar sozinha quando são onze
+   perguntas num celular. */
+.chat-entrevista {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.chat-entrevista .ent-responder {
+  background: transparent;
+  padding: 0;
+  border: 0;
+}
+.chat-entrevista .ent-linha { padding: 10px 0; }
+/* O botão de enviar não rola junto: ele é a saída do passo. */
+.chat-entrevista > .chat-opcao.forte {
+  position: sticky; bottom: 0; margin-top: 10px;
+}
+
+/* ════════════════════════════════════════════════════════════
+ *  ⭐⭐⭐ AS FOLHAS DA GUIA E O CARTAZ   (26/10/2026, à tarde)
+ * ════════════════════════════════════════════════════════════ */
+
+/* As folhas já enviadas. Sem esta lista o paciente não sabe se
+   a segunda foto entrou — e manda a mesma três vezes. */
+.chat-folhas {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-bottom: 4px;
+}
+.chat-folha {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--chat-primaria) 25%, transparent);
+  background: color-mix(in srgb, var(--chat-primaria) 6%, transparent);
+  border-radius: 10px;
+  font-size: .82rem;
+}
+.chat-folha-num {
+  width: 22px; height: 22px; flex: 0 0 22px;
+  border-radius: 7px;
+  background: var(--chat-primaria); color: var(--chat-tinta);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .72rem;
+}
+/* ⚠️ `min-width: 0` para o nome longo do arquivo encolher em vez
+   de empurrar o botão de remover para fora do balão. */
+.chat-folha-nome {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.chat-folha-tirar {
+  flex: 0 0 auto;
+  /* Alvo de toque de 32px: o X de 12px sozinho é impossível de
+     acertar com o polegar. */
+  width: 32px; height: 32px;
+  border: 0; background: transparent; cursor: pointer;
+  color: #9ca3af; font-size: .9rem; border-radius: 8px;
+}
+.chat-folha-tirar:hover, .chat-folha-tirar:focus-visible {
+  color: #b91c1c; background: rgba(185, 28, 28, .08);
+}
+
+/* O cartaz de orientações: um bloco por linha, ícone à esquerda.
+   É o desenho da arte que o hospital já usa impressa. */
+.chat-cartaz {
+  display: flex; flex-direction: column; gap: 2px;
+  border: 1px solid #e5e7eb; border-radius: 12px;
+  overflow: hidden; background: #fff;
+  margin-bottom: 4px;
+}
+.chat-cartaz-bloco {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 11px 13px;
+  border-bottom: 1px solid #f1f2f4;
+}
+.chat-cartaz-bloco:last-child { border-bottom: 0; }
+.chat-cartaz-icone {
+  width: 30px; height: 30px; flex: 0 0 30px;
+  border-radius: 9px;
+  background: var(--chat-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; line-height: 1;
+}
+.chat-cartaz-texto {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.chat-cartaz-texto strong {
+  font-size: .84rem; font-weight: 700; color: var(--chat-primaria);
+}
+.chat-cartaz-texto span {
+  font-size: .82rem; line-height: 1.45; color: #4b5563;
+  /* Texto de cadastro vem com quebras de linha digitadas pelo
+     hospital. Engoli-las viraria um parágrafo só. */
+  white-space: pre-line;
+}

@@ -1,0 +1,187 @@
+/* ════════════════════════════════════════════════════════════
+   A PORTA DA FRENTE — medcalendar.com.br
+   14/10/2026
+
+   ⭐ As mesmas regras de celular que o chat aprendeu hoje valem
+      aqui: nada vaza pela lateral, alvo de toque grande, e
+      texto que quebra onde precisa. Uma página de vendas que
+      rola de lado no celular perde o cliente antes da primeira
+      frase.
+   ════════════════════════════════════════════════════════════ */
+
+.lp {
+  --lp-tinta:   #0f172a;
+  --lp-suave:   #475569;
+  --lp-azul:    #004994;
+  --lp-escuro:  #002f61;
+  --lp-claro:   #eff6ff;
+
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--lp-tinta);
+  overflow-x: hidden;
+}
+
+.lp * { max-width: 100%; }
+
+.lp-largura {
+  max-width: 1120px;
+  margin: 0 auto;
+  /* 20px de respiro lateral: é o que impede o texto de colar na
+     borda num celular de 360px. */
+  padding: 0 20px;
+}
+
+/* ---------------- topo ---------------- */
+
+.lp-topo {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e8eef6;
+}
+.lp-topo-linha {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; height: 64px;
+}
+.lp-marca { height: 30px; width: auto; }
+
+.lp-menu { display: flex; align-items: center; gap: 22px; }
+.lp-menu a {
+  color: var(--lp-suave); text-decoration: none;
+  font-size: .9rem; font-weight: 500;
+}
+.lp-menu a:hover { color: var(--lp-azul); }
+
+/* No celular os links somem e sobra o botão — que é o que
+   interessa ali. */
+@media (max-width: 680px) {
+  .lp-menu a { display: none; }
+}
+
+.lp-botao {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  /* 44px: o alvo de toque que não erra. */
+  min-height: 44px; padding: 0 20px;
+  background: var(--lp-azul); color: #fff;
+  border: 1.5px solid var(--lp-azul); border-radius: 10px;
+  font-size: .94rem; font-weight: 600; font-family: inherit;
+  cursor: pointer; text-decoration: none;
+  transition: background .14s, transform .08s;
+}
+.lp-botao:hover  { background: var(--lp-escuro); border-color: var(--lp-escuro); }
+.lp-botao:active { transform: scale(.985); }
+.lp-botao.grande { min-height: 52px; padding: 0 28px; font-size: 1rem; }
+.lp-botao.vazado {
+  background: transparent; color: var(--lp-azul);
+}
+.lp-botao.vazado:hover { background: var(--lp-claro); }
+.lp-botao.claro {
+  background: #fff; color: var(--lp-escuro); border-color: #fff;
+}
+.lp-botao.claro:hover { background: var(--lp-claro); border-color: var(--lp-claro); }
+
+/* ---------------- capa ---------------- */
+
+.lp-capa {
+  padding: 72px 0 80px;
+  background:
+    radial-gradient(1100px 420px at 50% -120px, #dbeafe 0%, transparent 70%),
+    #fff;
+  text-align: center;
+}
+.lp-capa h1 {
+  margin: 0 0 18px;
+  /* `clamp` em vez de media query: o tamanho acompanha a tela
+     continuamente, e nunca estoura a largura. */
+  font-size: clamp(1.9rem, 5.2vw, 3.1rem);
+  line-height: 1.16; font-weight: 700; letter-spacing: -.02em;
+}
+.lp-capa h1 span { color: var(--lp-azul); }
+
+.lp-chamada {
+  max-width: 660px; margin: 0 auto 30px;
+  font-size: clamp(1rem, 2.2vw, 1.14rem);
+  line-height: 1.6; color: var(--lp-suave);
+}
+
+.lp-acoes {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+}
+
+/* ---------------- faixas ---------------- */
+
+.lp-faixa { padding: 72px 0; }
+.lp-faixa.clara { background: #f8fafc; }
+.lp-faixa h2 {
+  margin: 0 0 34px; text-align: center;
+  font-size: clamp(1.4rem, 3.4vw, 2rem); letter-spacing: -.01em;
+}
+
+.lp-grade {
+  display: grid;
+  /* `auto-fit` com mínimo de 300px: três colunas no computador,
+     duas no tablet, uma no celular — sem nenhuma media query e
+     sem nunca cortar um cartão. */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.lp-cartao {
+  background: #fff; border: 1px solid #e8eef6; border-radius: 14px;
+  padding: 24px 22px;
+}
+.lp-cartao-icone {
+  width: 46px; height: 46px; border-radius: 12px; margin-bottom: 14px;
+  background: var(--lp-claro); color: var(--lp-azul);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+}
+.lp-cartao h3 {
+  margin: 0 0 8px; font-size: 1.03rem; line-height: 1.35; font-weight: 600;
+}
+.lp-cartao p {
+  margin: 0; color: var(--lp-suave); font-size: .92rem; line-height: 1.6;
+}
+
+/* ---------------- os passos ---------------- */
+
+.lp-passos {
+  counter-reset: passo; list-style: none;
+  max-width: 760px; margin: 0 auto; padding: 0;
+}
+.lp-passos li {
+  counter-increment: passo;
+  position: relative; padding: 0 0 26px 62px;
+  color: var(--lp-suave); line-height: 1.6;
+}
+.lp-passos li::before {
+  content: counter(passo);
+  position: absolute; left: 0; top: -2px;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--lp-azul); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+}
+.lp-passos li strong {
+  display: block; color: var(--lp-tinta); margin-bottom: 4px;
+  font-size: 1.02rem;
+}
+
+/* ---------------- fecho ---------------- */
+
+.lp-fecho {
+  padding: 74px 0; text-align: center; color: #fff;
+  background: linear-gradient(135deg, var(--lp-escuro), var(--lp-azul));
+}
+.lp-fecho h2 { margin: 0 0 10px; font-size: clamp(1.4rem, 3.4vw, 2rem); }
+.lp-fecho p  { margin: 0 auto 26px; max-width: 520px; opacity: .9; }
+
+/* ---------------- rodapé ---------------- */
+
+.lp-rodape {
+  padding: 30px 0; background: #0f172a; color: #94a3b8;
+  text-align: center; font-size: .86rem;
+}
+.lp-rodape p { margin: 0 0 4px; }
+.lp-mini { font-size: .78rem; opacity: .75; }
